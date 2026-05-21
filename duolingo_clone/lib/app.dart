@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'presentation/layout/main_layout_screen.dart';
+import 'presentation/onboarding/welcome_screen.dart';
 
 class DuolingoCloneApp extends StatelessWidget {
   const DuolingoCloneApp({super.key});
@@ -37,7 +37,7 @@ class DuolingoCloneApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const MainLayoutScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }

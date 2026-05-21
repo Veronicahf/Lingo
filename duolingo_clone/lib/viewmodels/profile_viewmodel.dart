@@ -1,4 +1,5 @@
 import '../core/base_viewmodel.dart';
+import '../core/service_locator.dart';
 import '../models/user_profile.dart';
 import '../repositories/user_repository.dart';
 
@@ -7,8 +8,11 @@ import '../repositories/user_repository.dart';
 /// Esta clase conecta la vista con el repositorio, mantiene el perfil cargado en memoria
 /// y notifica a la UI cuando cambian los datos o el estado de carga.
 class ProfileViewModel extends BaseViewModel {
-  /// Crea una ViewModel de perfil con su repositorio inyectado.
-  ProfileViewModel(this._userRepository);
+  /// Crea una ViewModel de perfil con repositorio opcional inyectado.
+  ///
+  /// Si no se proporciona uno, se utiliza la instancia registrada en [ServiceLocator].
+  ProfileViewModel({MockUserRepository? userRepository})
+      : _userRepository = userRepository ?? ServiceLocator.userRepository;
 
   final MockUserRepository _userRepository;
 

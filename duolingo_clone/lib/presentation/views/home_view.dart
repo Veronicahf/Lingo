@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../lessons/active_lesson_screen.dart';
+
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
@@ -361,7 +363,7 @@ class _LessonNode extends StatelessWidget {
       ),
     ];
 
-    return Container(
+    final lessonContainer = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -377,6 +379,23 @@ class _LessonNode extends StatelessWidget {
         ),
         child: Icon(icon, color: iconColor, size: size * 0.42),
       ),
+    );
+
+    if (!active) {
+      return lessonContainer;
+    }
+
+    return GestureDetector(
+      // TODO: Extraer a un Command (ej. StartLessonCommand) cuando se implemente HomeViewModel.
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => const ActiveLessonScreen(),
+          ),
+        );
+      },
+      child: lessonContainer,
     );
   }
 }
