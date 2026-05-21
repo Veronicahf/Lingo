@@ -1,7 +1,37 @@
 import 'package:flutter/material.dart';
 
-class ChallengesView extends StatelessWidget {
+import '../../models/challenge.dart';
+import '../../viewmodels/challenges_viewmodel.dart';
+
+/// Pantalla de desafios que presenta tareas, cofres y recompensas desde datos estructurados.
+///
+/// Esta vista escucha al [ChallengesViewModel] y renderiza cada desafio a partir de la lista
+/// obtenida del repositorio, evitando tarjetas y textos quemados dentro del widget tree.
+class ChallengesView extends StatefulWidget {
+  /// Crea la pantalla de desafios.
   const ChallengesView({super.key});
+
+  @override
+  State<ChallengesView> createState() => _ChallengesViewState();
+}
+
+/// Estado interno de [ChallengesView] encargado de cargar y liberar la ViewModel.
+class _ChallengesViewState extends State<ChallengesView> {
+  late final ChallengesViewModel _viewModel = ChallengesViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewModel.loadChallenges();
+    });
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,41 +40,15 @@ class ChallengesView extends StatelessWidget {
       child: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
-        children: const [
-          SizedBox(height: 18),
-          _ChallengesHeader(),
-          SizedBox(height: 18),
-          _ChallengeSection(
-            eyebrow: 'Desafío entre amigos',
-            title: 'Sigue a tu primer amigo',
-            progress: '0 / 1',
-            progressValue: 0.0,
-            actionLabel: 'Encuentra a tus amigos',
-            actionIcon: Icons.person_add_alt_1_rounded,
-            chestStyle: _ChestStyle.friend,
-          ),
-          SizedBox(height: 24),
-          Divider(color: Color(0xFF2B3840), height: 1),
-          SizedBox(height: 24),
-          _ChallengeSection(
-            eyebrow: 'Desafío del día',
-            title: 'Empieza una racha',
-            progress: '1 / 1',
-            progressValue: 1.0,
-            progressColor: Color(0xFFFF5CB8),
-            chestStyle: _ChestStyle.daily,
-          ),
-          SizedBox(height: 24),
-          Divider(color: Color(0xFF2B3840), height: 1),
-          SizedBox(height: 24),
-          _LockedChallengePreview(
-            title: 'A continuación',
-            subtitle: 'Se revelará en 6 días',
-          ),
-          SizedBox(height: 14),
-          _LockedChallengePreview(
-            title: 'A continuación',
-            subtitle: 'Se revelará en 6 días',
+        children: [
+          const SizedBox(height: 18),
+          const _ChallengesHeader(),
+          const SizedBox(height: 18),
+          ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, child) {
+              return _ChallengesList(challenges: _viewModel.challenges);
+            },
           ),
         ],
       ),
@@ -52,7 +56,9 @@ class ChallengesView extends StatelessWidget {
   }
 }
 
+/// Cabecera superior de la pantalla de desafios.
 class _ChallengesHeader extends StatelessWidget {
+  /// Crea la cabecera principal de desafios.
   const _ChallengesHeader();
 
   @override
@@ -119,31 +125,55 @@ class _ChallengesHeader extends StatelessWidget {
   }
 }
 
-enum _ChestStyle { friend, daily }
+/// Lista de desafios renderizada desde el ViewModel.
+class _ChallengesList extends StatelessWidget {
+  /// Crea la lista visual de desafios.
+  const _ChallengesList({required this.challenges});
 
-class _ChallengeSection extends StatelessWidget {
-  const _ChallengeSection({
-    required this.eyebrow,
-    required this.title,
-    required this.progress,
-    required this.progressValue,
-    this.progressColor = const Color(0xFF4A5863),
-    this.actionLabel,
-    this.actionIcon,
-    required this.chestStyle,
-  });
-
-  final String eyebrow;
-  final String title;
-  final String progress;
-  final double progressValue;
-  final Color progressColor;
-  final String? actionLabel;
-  final IconData? actionIcon;
-  final _ChestStyle chestStyle; 
+  final List<Challenge> challenges;
 
   @override
   Widget build(BuildContext context) {
+    if (challenges.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 24),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        for (var index = 0; index < challenges.length; index++) ...[
+          _ChallengeSection(challenge: challenges[index]),
+          if (index != challenges.length - 1) ...[
+            const SizedBox(height: 24),
+            const Divider(color: Color(0xFF2B3840), height: 1),
+            const SizedBox(height: 24),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+/// Seccion visual de un desafio individual.
+class _ChallengeSection extends StatelessWidget {
+  /// Crea una tarjeta de desafio a partir del modelo [Challenge].
+  const _ChallengeSection({required this.challenge});
+
+  final Challenge challenge;
+
+  @override
+  Widget build(BuildContext context) {
+    if (challenge.isLocked) {
+      return _LockedChallengePreview(
+        title: challenge.eyebrow ?? 'A continuación',
+        subtitle: challenge.lockedSubtitle ?? challenge.title,
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -152,7 +182,7 @@ class _ChallengeSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                eyebrow.toUpperCase(),
+                (challenge.eyebrow ?? '').toUpperCase(),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.38),
                   fontSize: 17,
@@ -162,7 +192,7 @@ class _ChallengeSection extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                title,
+                challenge.title,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -171,23 +201,28 @@ class _ChallengeSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _ProgressBar(value: progressValue, color: progressColor, label: progress),
-              if (actionLabel != null && actionIcon != null) ...[
+              _ProgressBar(
+                value: challenge.progressValue,
+                color: challenge.progressColor ?? const Color(0xFF4A5863),
+                label: challenge.progressLabel,
+              ),
+              if (challenge.actionLabel != null && challenge.actionIcon != null) ...[
                 const SizedBox(height: 18),
-                _OutlinedActionButton(label: actionLabel!, icon: actionIcon!),
+                _OutlinedActionButton(label: challenge.actionLabel!, icon: challenge.actionIcon!),
               ],
             ],
           ),
         ),
         const SizedBox(width: 16),
-        _ChallengeChest(style: chestStyle),
+        _ChallengeChest(style: challenge.chestStyle),
       ],
     );
   }
 }
 
-
+/// Barra de progreso reutilizable para mostrar avance de un desafio.
 class _ProgressBar extends StatelessWidget {
+  /// Crea una barra con valor, color y etiqueta.
   const _ProgressBar({
     required this.value,
     required this.color,
@@ -233,7 +268,9 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
+/// Boton de contorno reutilizable para acciones de desafio.
 class _OutlinedActionButton extends StatelessWidget {
+  /// Crea el boton de accion con icono y texto.
   const _OutlinedActionButton({
     required this.label,
     required this.icon,
@@ -271,16 +308,27 @@ class _OutlinedActionButton extends StatelessWidget {
   }
 }
 
+/// Cofre visual asociado a un desafio.
 class _ChallengeChest extends StatelessWidget {
+  /// Crea el cofre segun su variante visual.
   const _ChallengeChest({required this.style});
 
-  final _ChestStyle style;
+  final ChallengeChestStyle style;
 
   @override
   Widget build(BuildContext context) {
-    final bool isFriend = style == _ChestStyle.friend;
-    final Color chestColor = isFriend ? const Color(0xFFFFD23D) : const Color(0xFFF2A12B);
-    final Color accentColor = isFriend ? const Color(0xFFB96CFF) : const Color(0xFFFFD9B0);
+    final bool isFriend = style == ChallengeChestStyle.friend;
+    final bool isDaily = style == ChallengeChestStyle.daily;
+    final Color chestColor = isFriend
+        ? const Color(0xFFFFD23D)
+        : isDaily
+            ? const Color(0xFFF2A12B)
+            : const Color(0xFF5C6B76);
+    final Color accentColor = isFriend
+        ? const Color(0xFFB96CFF)
+        : isDaily
+            ? const Color(0xFFFFD9B0)
+            : const Color(0xFF94A1AB);
 
     return Container(
       width: 84,
@@ -315,12 +363,16 @@ class _ChallengeChest extends StatelessWidget {
             width: 26,
             height: 16,
             decoration: BoxDecoration(
-              color: isFriend ? const Color(0xFF8D43D9) : const Color(0xFFCD6E14),
+              color: isFriend
+                  ? const Color(0xFF8D43D9)
+                  : isDaily
+                      ? const Color(0xFFCD6E14)
+                      : const Color(0xFF43515A),
               borderRadius: BorderRadius.circular(10),
             ),
           ),
           Icon(
-            isFriend ? Icons.groups_rounded : Icons.lock_rounded,
+            style == ChallengeChestStyle.locked ? Icons.lock_rounded : Icons.groups_rounded,
             color: Colors.white.withValues(alpha: 0.9),
             size: 28,
           ),
@@ -330,7 +382,9 @@ class _ChallengeChest extends StatelessWidget {
   }
 }
 
+/// Tarjeta bloqueada usada para los desafios proximos.
 class _LockedChallengePreview extends StatelessWidget {
+  /// Crea la vista previa de un desafio bloqueado.
   const _LockedChallengePreview({
     required this.title,
     required this.subtitle,

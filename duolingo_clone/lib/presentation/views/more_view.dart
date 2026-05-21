@@ -1,11 +1,40 @@
 import 'package:flutter/material.dart';
 
+import '../../models/more_option.dart';
+import '../../viewmodels/more_viewmodel.dart';
 import '../more/practice_center_screen.dart';
 import '../more/sounds_screen.dart';
 import '../more/video_call_screen.dart';
 
-class MoreView extends StatelessWidget {
+/// Pantalla de opciones adicionales que agrupa accesos a funciones secundarias de la app.
+///
+/// Esta vista escucha al [MoreViewModel] y construye las tarjetas desde una lista estructurada,
+/// delegando la navegación a rutas concretas según el identificador de cada opcion.
+class MoreView extends StatefulWidget {
+  /// Crea la pantalla "Más".
   const MoreView({super.key});
+
+  @override
+  State<MoreView> createState() => _MoreViewState();
+}
+
+/// Estado interno de [MoreView] que carga y libera la ViewModel.
+class _MoreViewState extends State<MoreView> {
+  late final MoreViewModel _viewModel = MoreViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewModel.loadOptions();
+    });
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,44 +53,30 @@ class MoreView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          _MoreOptionCard(
-            title: 'Sonidos',
-            subtitle: 'Practica vocales y consonantes',
-            icon: Icons.graphic_eq_rounded,
-            accentColor: const Color(0xFF52BDF7),
-            iconBackground: const Color(0xFF1F86C1),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SoundsScreen()),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          _MoreOptionCard(
-            title: 'Centro de Práctica',
-            subtitle: 'Ejercicios guiados y tarjetas',
-            icon: Icons.fitness_center_rounded,
-            accentColor: const Color(0xFFFFC24A),
-            iconBackground: const Color(0xFFDA8A00),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PracticeCenterScreen()),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          _MoreOptionCard(
-            title: 'Videollamada',
-            subtitle: 'Lecciones con personajes',
-            icon: Icons.video_call_rounded,
-            accentColor: const Color(0xFFB87CFF),
-            iconBackground: const Color(0xFF6730A8),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const VideoCallScreen()),
+          ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, child) {
+              final options = _viewModel.options;
+
+              if (options.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.only(top: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: options.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                itemBuilder: (context, index) {
+                  final option = options[index];
+                  return _MoreOptionCard(
+                    option: option,
+                    onTap: () => _navigateByOptionId(context, option.id),
+                  );
+                },
               );
             },
           ),
@@ -69,23 +84,42 @@ class MoreView extends StatelessWidget {
       ),
     );
   }
+
+  void _navigateByOptionId(BuildContext context, String optionId) {
+    switch (optionId) {
+      case 'sounds':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SoundsScreen()),
+        );
+        break;
+      case 'practice_center':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PracticeCenterScreen()),
+        );
+        break;
+      case 'video_call':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const VideoCallScreen()),
+        );
+        break;
+      default:
+        break;
+    }
+  }
 }
 
+/// Tarjeta reutilizable para una opcion del menu "Más".
 class _MoreOptionCard extends StatelessWidget {
+  /// Crea la tarjeta a partir del modelo [MoreOption].
   const _MoreOptionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accentColor,
-    required this.iconBackground,
+    required this.option,
     required this.onTap,
   });
 
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color accentColor;
-  final Color iconBackground;
+  final MoreOption option;
   final VoidCallback onTap;
 
   @override
@@ -113,10 +147,10 @@ class _MoreOptionCard extends StatelessWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: iconBackground,
+                color: option.iconBackground,
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(icon, color: Colors.white, size: 34),
+              child: Icon(option.icon, color: Colors.white, size: 34),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -124,16 +158,16 @@ class _MoreOptionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    option.title,
                     style: TextStyle(
-                      color: accentColor,
+                      color: option.accentColor,
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    subtitle,
+                    option.subtitle,
                     style: const TextStyle(
                       color: Color(0xFF9AA7B1),
                       fontSize: 15,
