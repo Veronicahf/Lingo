@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';
-import '../../repositories/user_repository.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 
 /// Pantalla de perfil del usuario que presenta su progreso y métricas principales.
@@ -18,9 +17,7 @@ class ProfileView extends StatefulWidget {
 
 /// Estado interno de [ProfileView] que instancia y libera el ViewModel de perfil.
 class _ProfileViewState extends State<ProfileView> {
-  late final ProfileViewModel _viewModel = ProfileViewModel(
-    const MockUserRepository(),
-  );
+  late final ProfileViewModel _viewModel = ProfileViewModel();
 
   @override
   void initState() {

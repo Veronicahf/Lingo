@@ -1,7 +1,37 @@
 import 'package:flutter/material.dart';
 
-class NewsView extends StatelessWidget {
+import '../../models/news_article.dart';
+import '../../viewmodels/news_viewmodel.dart';
+
+/// Pantalla de novedades que presenta noticias, promociones y contenido social desde datos.
+///
+/// Esta vista escucha al [NewsViewModel] y dibuja sus tarjetas iterando sobre una lista de
+/// [NewsArticle], evitando el contenido escrito directamente en la UI.
+class NewsView extends StatefulWidget {
+  /// Crea la pantalla de novedades.
   const NewsView({super.key});
+
+  @override
+  State<NewsView> createState() => _NewsViewState();
+}
+
+/// Estado interno de [NewsView] que carga y libera el ViewModel.
+class _NewsViewState extends State<NewsView> {
+  late final NewsViewModel _viewModel = NewsViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewModel.loadNewsArticles();
+    });
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,8 +40,8 @@ class NewsView extends StatelessWidget {
       child: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-        children: const [
-          Text(
+        children: [
+          const Text(
             'Novedades',
             style: TextStyle(
               color: Colors.white,
@@ -19,49 +49,83 @@ class NewsView extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: 26),
-          _NewsPromoCard(),
-          SizedBox(height: 22),
-          Divider(color: Color(0xFF2B3840), height: 1),
-          SizedBox(height: 18),
-          _NewsFeedItem(
-            userName: 'veronica',
-            timeLabel: '1 m',
-            message: '¡Completó una lección sin errores!',
-            reactionCount: '0',
-            primaryColor: Color(0xFF37D0E1),
-            accentColor: Color(0xFF92E34B),
-            initials: 'V',
+          const SizedBox(height: 26),
+          ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, child) {
+              final articles = _viewModel.articles;
+
+              if (articles.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.only(top: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              return Column(
+                children: [
+                  for (var index = 0; index < articles.length; index++) ...[
+                    _NewsArticleCard(article: articles[index]),
+                    if (index != articles.length - 1) ...[
+                      const SizedBox(height: 22),
+                      const Divider(color: Color(0xFF2B3840), height: 1),
+                      const SizedBox(height: 18),
+                    ],
+                  ],
+                ],
+              );
+            },
           ),
-          SizedBox(height: 22),
-          Divider(color: Color(0xFF2B3840), height: 1),
-          SizedBox(height: 18),
-          _NewsQuoteCard(),
         ],
       ),
     );
   }
 }
 
+/// Tarjeta de novedad reutilizable construida a partir de [NewsArticle].
+class _NewsArticleCard extends StatelessWidget {
+  /// Crea una tarjeta de novedad basada en el modelo.
+  const _NewsArticleCard({required this.article});
+
+  final NewsArticle article;
+
+  @override
+  Widget build(BuildContext context) {
+    if (article.id == 'news_01') {
+      return _NewsPromoCard(article: article);
+    }
+
+    if (article.id == 'news_03') {
+      return _NewsQuoteCard(article: article);
+    }
+
+    return _NewsFeedItem(article: article);
+  }
+}
+
+/// Tarjeta promocional superior de novedades.
 class _NewsPromoCard extends StatelessWidget {
-  const _NewsPromoCard();
+  /// Crea la tarjeta promocional.
+  const _NewsPromoCard({required this.article});
+
+  final NewsArticle article;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF24A0E0),
+        color: Color(article.backgroundColor),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(
-            width: 210,
+          SizedBox(
+            width: 220,
             child: Text(
-              '¡Celebra tus logros\ncon tus amigos!',
-              style: TextStyle(
+              article.title,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
@@ -84,11 +148,11 @@ class _NewsPromoCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Text(
-              'AGREGA AMIGOS',
+            child: Text(
+              article.buttonText,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Color(0xFF1C97D0),
+                color: Color(article.backgroundColor),
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.7,
@@ -101,24 +165,12 @@ class _NewsPromoCard extends StatelessWidget {
   }
 }
 
+/// Elemento de feed intermedio reutilizable en la pantalla de novedades.
 class _NewsFeedItem extends StatelessWidget {
-  const _NewsFeedItem({
-    required this.userName,
-    required this.timeLabel,
-    required this.message,
-    required this.reactionCount,
-    required this.primaryColor,
-    required this.accentColor,
-    required this.initials,
-  });
+  /// Crea un item del feed a partir del modelo.
+  const _NewsFeedItem({required this.article});
 
-  final String userName;
-  final String timeLabel;
-  final String message;
-  final String reactionCount;
-  final Color primaryColor;
-  final Color accentColor;
-  final String initials;
+  final NewsArticle article;
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +181,7 @@ class _NewsFeedItem extends StatelessWidget {
           radius: 22,
           backgroundColor: const Color(0xFF2C3A43),
           child: Text(
-            initials,
+            article.title.isNotEmpty ? article.title[0].toUpperCase() : '?',
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
           ),
         ),
@@ -138,18 +190,18 @@ class _NewsFeedItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                userName,
-                style: const TextStyle(
+              const Text(
+                'veronica',
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                timeLabel,
-                style: const TextStyle(
+              const Text(
+                '1 m',
+                style: TextStyle(
                   color: Color(0xFF86939D),
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -157,7 +209,7 @@ class _NewsFeedItem extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Text(
-                message,
+                article.description,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -166,13 +218,13 @@ class _NewsFeedItem extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Row(
-                children: [
+                children: const [
                   _SmallActionChip(
                     icon: Icons.favorite_border_rounded,
-                    label: reactionCount,
+                    label: '0',
                   ),
-                  const SizedBox(width: 12),
-                  const _SmallActionChip(
+                  SizedBox(width: 12),
+                  _SmallActionChip(
                     icon: Icons.ios_share_rounded,
                     label: '',
                   ),
@@ -186,17 +238,77 @@ class _NewsFeedItem extends StatelessWidget {
           width: 86,
           height: 86,
           decoration: BoxDecoration(
-            color: accentColor,
+            color: Color(article.backgroundColor),
             borderRadius: BorderRadius.circular(26),
           ),
-          child: Icon(Icons.flutter_dash_rounded, color: primaryColor, size: 48),
+          child: Icon(article.iconData, color: Colors.white, size: 48),
         ),
       ],
     );
   }
 }
 
+/// Tarjeta de cita visual para una novedad destacada.
+class _NewsQuoteCard extends StatelessWidget {
+  /// Crea una tarjeta de cita usando el articulo recibido.
+  const _NewsQuoteCard({required this.article});
+
+  final NewsArticle article;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+            decoration: BoxDecoration(
+              color: Color(article.backgroundColor),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  article.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  article.description,
+                  style: const TextStyle(
+                    color: Color(0xFF8F9DA7),
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Container(
+          width: 82,
+          height: 160,
+          decoration: BoxDecoration(
+            color: const Color(0xFF9FE33A),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Icon(article.iconData, color: const Color(0xFF0E1C24), size: 60),
+        ),
+      ],
+    );
+  }
+}
+
+/// Boton compacto reutilizable de las tarjetas de novedades.
 class _SmallActionChip extends StatelessWidget {
+  /// Crea un chip con icono y etiqueta opcional.
   const _SmallActionChip({
     required this.icon,
     required this.label,
@@ -227,60 +339,6 @@ class _SmallActionChip extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-class _NewsQuoteCard extends StatelessWidget {
-  const _NewsQuoteCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF26333B),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'He was awarded a medal for\nhis bravery!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    height: 1.25,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  '¡Recibió una medalla por su valentía!',
-                  style: TextStyle(
-                    color: Color(0xFF8F9DA7),
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-        Container(
-          width: 82,
-          height: 160,
-          decoration: BoxDecoration(
-            color: const Color(0xFF9FE33A),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: const Icon(Icons.flutter_dash_rounded, color: Color(0xFF0E1C24), size: 60),
-        ),
-      ],
     );
   }
 }

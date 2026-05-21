@@ -1,7 +1,37 @@
 import 'package:flutter/material.dart';
 
-class RankingView extends StatelessWidget {
+import '../../models/ranking_user.dart';
+import '../../viewmodels/ranking_viewmodel.dart';
+
+/// Pantalla de ranking que presenta la division y la tabla de posiciones desde datos estructurados.
+///
+/// Esta vista escucha al [RankingViewModel] y construye las filas del leaderboard sin usuarios
+/// escritos directamente en el widget tree.
+class RankingView extends StatefulWidget {
+  /// Crea la pantalla de ranking.
   const RankingView({super.key});
+
+  @override
+  State<RankingView> createState() => _RankingViewState();
+}
+
+/// Estado interno de [RankingView] encargado de cargar y liberar el ViewModel.
+class _RankingViewState extends State<RankingView> {
+  late final RankingViewModel _viewModel = RankingViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewModel.loadRankingUsers();
+    });
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,31 +40,59 @@ class RankingView extends StatelessWidget {
       child: ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-        children: const [
-          _RankingHeader(),
-          SizedBox(height: 20),
-          _TrophyStrip(),
-          SizedBox(height: 18),
-          _RankingDividerLabel(
-            text: 'ZONA DE ASCENSO',
-            color: Color(0xFF8CD33C),
+        children: [
+          const _RankingHeader(),
+          const SizedBox(height: 20),
+          const _TrophyStrip(),
+          const SizedBox(height: 18),
+          ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, child) {
+              final users = _viewModel.rankingUsers;
+              final currentIndex = _viewModel.currentUserIndex;
+
+              if (users.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.only(top: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final topUsers = currentIndex >= 0 ? users.sublist(0, currentIndex + 1) : users;
+              final bottomUsers = currentIndex >= 0 && currentIndex + 1 < users.length
+                  ? users.sublist(currentIndex + 1)
+                  : <RankingUser>[];
+
+              return Column(
+                children: [
+                  const _RankingDividerLabel(
+                    text: 'ZONA DE ASCENSO',
+                    color: Color(0xFF8CD33C),
+                  ),
+                  const SizedBox(height: 14),
+                  _RankingTable(entries: topUsers, startRank: 1),
+                  if (bottomUsers.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    const _RankingDividerLabel(
+                      text: 'ZONA DE DESCENSO',
+                      color: Color(0xFFE95B5B),
+                    ),
+                    const SizedBox(height: 14),
+                    _RankingTable(entries: bottomUsers, startRank: topUsers.length + 1),
+                  ],
+                ],
+              );
+            },
           ),
-          SizedBox(height: 14),
-          _RankingTable(),
-          SizedBox(height: 18),
-          _RankingDividerLabel(
-            text: 'ZONA DE DESCENSO',
-            color: Color(0xFFE95B5B),
-          ),
-          SizedBox(height: 14),
-          _RankingTable(downZone: true),
         ],
       ),
     );
   }
 }
 
+/// Cabecera superior del ranking con division y dias restantes.
 class _RankingHeader extends StatelessWidget {
+  /// Crea la cabecera de ranking.
   const _RankingHeader();
 
   @override
@@ -72,7 +130,9 @@ class _RankingHeader extends StatelessWidget {
   }
 }
 
+/// Banda horizontal de trofeos que conserva el contexto visual del ranking.
 class _TrophyStrip extends StatelessWidget {
+  /// Crea la banda de trofeos.
   const _TrophyStrip();
 
   @override
@@ -101,7 +161,9 @@ class _TrophyStrip extends StatelessWidget {
   }
 }
 
+/// Tarjeta individual del carrusel de trofeos.
 class _TrophyCard extends StatelessWidget {
+  /// Crea una tarjeta de trofeo.
   const _TrophyCard({required this.data});
 
   final _TrophyData data;
@@ -126,7 +188,9 @@ class _TrophyCard extends StatelessWidget {
   }
 }
 
+/// Etiqueta separadora para las zonas de ascenso y descenso.
 class _RankingDividerLabel extends StatelessWidget {
+  /// Crea un separador con texto y color.
   const _RankingDividerLabel({
     required this.text,
     required this.color,
@@ -158,52 +222,49 @@ class _RankingDividerLabel extends StatelessWidget {
   }
 }
 
+/// Tabla de posiciones construida a partir de una lista de usuarios del ranking.
 class _RankingTable extends StatelessWidget {
-  const _RankingTable({this.downZone = false});
+  /// Crea la tabla con entradas y numero inicial de ranking.
+  const _RankingTable({
+    required this.entries,
+    required this.startRank,
+  });
 
-  final bool downZone;
+  final List<RankingUser> entries;
+  final int startRank;
 
   @override
   Widget build(BuildContext context) {
-    final entries = downZone ? _RankingEntry.samplesDown : _RankingEntry.samplesUp;
-
     return ListView.builder(
       itemCount: entries.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final entry = entries[index];
-        final bool isHighlighted = entry.rank == 13;
+        final int rank = startRank + index;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
           decoration: BoxDecoration(
-            color: isHighlighted ? const Color(0xFF26333B) : Colors.transparent,
+            color: entry.isCurrentUser ? const Color(0xFF26333B) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
               SizedBox(
-                width: 28,
+                width: 32,
                 child: Text(
-                  '${entry.rank}',
+                  '$rank',
                   style: TextStyle(
-                    color: isHighlighted ? Colors.white : const Color(0xFF7F8D97),
+                    color: entry.isCurrentUser ? Colors.white : const Color(0xFF7F8D97),
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: entry.avatarColor,
-                child: Text(
-                  entry.avatarLetter,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-                ),
-              ),
+              _RankingAvatar(user: entry),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -215,32 +276,29 @@ class _RankingTable extends StatelessWidget {
                           child: Text(
                             entry.name,
                             style: TextStyle(
-                              color: isHighlighted ? Colors.white : const Color(0xFFD8E1E7),
+                              color: entry.isCurrentUser ? Colors.white : const Color(0xFFD8E1E7),
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
                         Text(
-                          '${entry.exp} EXP',
+                          '${entry.xp} XP',
                           style: TextStyle(
-                            color: isHighlighted ? Colors.white : const Color(0xFF99A6AF),
+                            color: entry.isCurrentUser ? Colors.white : const Color(0xFF99A6AF),
                             fontSize: 18,
-                            fontWeight: isHighlighted ? FontWeight.w800 : FontWeight.w700,
+                            fontWeight: entry.isCurrentUser ? FontWeight.w800 : FontWeight.w700,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(entry.flag, style: const TextStyle(fontSize: 20)),
-                        const SizedBox(width: 8),
-                        Text(
-                          entry.level.toString(),
-                          style: const TextStyle(color: Color(0xFF99A6AF), fontSize: 15),
-                        ),
-                      ],
+                    Text(
+                      entry.isCurrentUser ? 'Tu posición actual' : 'Competidor activo',
+                      style: const TextStyle(
+                        color: Color(0xFF99A6AF),
+                        fontSize: 15,
+                      ),
                     ),
                   ],
                 ),
@@ -253,41 +311,39 @@ class _RankingTable extends StatelessWidget {
   }
 }
 
-class _RankingEntry {
-  const _RankingEntry({
-    required this.rank,
-    required this.name,
-    required this.flag,
-    required this.level,
-    required this.exp,
-    required this.avatarColor,
-    required this.avatarLetter,
-  });
+/// Avatar reutilizable para el usuario del ranking.
+class _RankingAvatar extends StatelessWidget {
+  /// Crea el avatar del usuario con fallback por inicial.
+  const _RankingAvatar({required this.user});
 
-  final int rank;
-  final String name;
-  final String flag;
-  final int level;
-  final int exp;
-  final Color avatarColor;
-  final String avatarLetter;
+  final RankingUser user;
 
-  static const samplesUp = <_RankingEntry>[
-    _RankingEntry(rank: 10, name: 'J', flag: '🇧🇷', level: 8, exp: 45, avatarColor: Color(0xFFFFB347), avatarLetter: 'J'),
-    _RankingEntry(rank: 11, name: 'Ali', flag: '🇺🇸', level: 3, exp: 45, avatarColor: Color(0xFFF3D7E7), avatarLetter: 'A'),
-    _RankingEntry(rank: 12, name: 'Grace Ruiz', flag: '🇪🇸', level: 13, exp: 41, avatarColor: Color(0xFF4E7BC2), avatarLetter: 'G'),
-    _RankingEntry(rank: 13, name: 'veronica', flag: '🇺🇸', level: 13, exp: 40, avatarColor: Color(0xFF55B0D6), avatarLetter: 'v'),
-    _RankingEntry(rank: 14, name: 'Nando Ortiz', flag: '🇺🇸', level: 8, exp: 32, avatarColor: Color(0xFF52B7F2), avatarLetter: 'N'),
-  ];
-
-  static const samplesDown = <_RankingEntry>[
-    _RankingEntry(rank: 15, name: 'Juan Pablo', flag: '🇺🇸', level: 8, exp: 31, avatarColor: Color(0xFFBF6B45), avatarLetter: 'J'),
-    _RankingEntry(rank: 16, name: 'noi', flag: '🇺🇸', level: 4, exp: 27, avatarColor: Color(0xFF8DD13A), avatarLetter: 'N'),
-    _RankingEntry(rank: 17, name: 'Sara', flag: '🇲🇽', level: 10, exp: 24, avatarColor: Color(0xFFDA6E72), avatarLetter: 'S'),
-    _RankingEntry(rank: 18, name: 'Lina', flag: '🇨🇴', level: 6, exp: 18, avatarColor: Color(0xFF6C89D3), avatarLetter: 'L'),
-  ];
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Image.network(
+          user.avatarUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: user.isCurrentUser ? const Color(0xFF55B0D6) : const Color(0xFF44525C),
+              alignment: Alignment.center,
+              child: Text(
+                user.name.isNotEmpty ? user.name.characters.first.toUpperCase() : '?',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
 
+/// Datos de un trofeo del carrusel superior.
 class _TrophyData {
   const _TrophyData({
     required this.color,
