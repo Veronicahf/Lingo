@@ -1,56 +1,104 @@
 import 'package:flutter/material.dart';
 
-class ProfileView extends StatelessWidget {
+import '../../models/user_profile.dart';
+import '../../repositories/user_repository.dart';
+import '../../viewmodels/profile_viewmodel.dart';
+
+/// Pantalla de perfil del usuario que presenta su progreso y métricas principales.
+///
+/// Esta vista crea su propio ViewModel, lo escucha con `ListenableBuilder` y pinta los datos
+/// del perfil provenientes del repositorio mock sin mezclar la lógica de carga con la UI.
+class ProfileView extends StatefulWidget {
+  /// Crea la pantalla de perfil.
   const ProfileView({super.key});
 
   @override
+  State<ProfileView> createState() => _ProfileViewState();
+}
+
+/// Estado interno de [ProfileView] que instancia y libera el ViewModel de perfil.
+class _ProfileViewState extends State<ProfileView> {
+  late final ProfileViewModel _viewModel = ProfileViewModel(
+    const MockUserRepository(),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewModel.loadProfile();
+    });
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.transparent,
-      child: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-        children: const [
-          _ProfileHeader(),
-          SizedBox(height: 18),
-          _ProfileHeroAvatar(),
-          SizedBox(height: 18),
-          _ProfileHandleRow(),
-          SizedBox(height: 18),
-          _ProfileStatsGrid(),
-          SizedBox(height: 18),
-          _ProfileActionButton(label: 'AGREGA AMIGOS'),
-          SizedBox(height: 18),
-          _ProfilePromoCard(),
-          SizedBox(height: 24),
-          _ProfileSectionTitle(text: 'RESUMEN'),
-          SizedBox(height: 12),
-          _ProfileSummaryGrid(),
-          SizedBox(height: 24),
-          _ProfileSectionTitle(text: 'MEDALLAS MENSUALES'),
-        ],
-      ),
+    return ListenableBuilder(
+      listenable: _viewModel,
+      builder: (context, child) {
+        final profile = _viewModel.profile;
+
+        return Container(
+          color: Colors.transparent,
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+            children: [
+              _ProfileHeader(username: profile?.username ?? 'Perfil'),
+              const SizedBox(height: 18),
+              const _ProfileHeroAvatar(),
+              const SizedBox(height: 18),
+              _ProfileHandleRow(
+                handle: profile == null
+                    ? 'CARGANDO PERFIL...'
+                    : '@${profile.username.toUpperCase()} · ${profile.leagueName.toUpperCase()}',
+              ),
+              const SizedBox(height: 18),
+              _ProfileStatsGrid(profile: profile),
+              const SizedBox(height: 18),
+              const _ProfileActionButton(label: 'AGREGA AMIGOS'),
+              const SizedBox(height: 18),
+              const _ProfilePromoCard(),
+              const SizedBox(height: 24),
+              const _ProfileSectionTitle(text: 'RESUMEN'),
+              const SizedBox(height: 12),
+              _ProfileSummaryGrid(profile: profile),
+              const SizedBox(height: 24),
+              const _ProfileSectionTitle(text: 'MEDALLAS MENSUALES'),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
+/// Cabecera superior del perfil con el nombre visible del usuario y accesos rápidos.
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
+  /// Crea la cabecera usando el nombre del usuario.
+  const _ProfileHeader({required this.username});
+
+  final String username;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'veronica',
-          style: TextStyle(
+          username,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 30,
             fontWeight: FontWeight.w800,
           ),
         ),
-        Row(
+        const Row(
           children: [
             Icon(Icons.ios_share_rounded, color: Color(0xFF9AA7B1), size: 30),
             SizedBox(width: 18),
@@ -62,7 +110,9 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
+/// Tarjeta decorativa que representa la fotografía o avatar principal del perfil.
 class _ProfileHeroAvatar extends StatelessWidget {
+  /// Crea el bloque visual del avatar.
   const _ProfileHeroAvatar();
 
   @override
@@ -74,19 +124,27 @@ class _ProfileHeroAvatar extends StatelessWidget {
         color: const Color(0xFFD5D5D5),
         borderRadius: BorderRadius.circular(24),
       ),
-      child: const Icon(Icons.person_rounded, size: 170, color: Color(0xFF3C3C3C)),
+      child: const Icon(
+        Icons.person_rounded,
+        size: 170,
+        color: Color(0xFF3C3C3C),
+      ),
     );
   }
 }
 
+/// Fila secundaria que muestra el identificador público del usuario y su división actual.
 class _ProfileHandleRow extends StatelessWidget {
-  const _ProfileHandleRow();
+  /// Crea la fila del handle con texto dinámico.
+  const _ProfileHandleRow({required this.handle});
+
+  final String handle;
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      '@VEROHF18 · SE UNIÓ EN 2020',
-      style: TextStyle(
+    return Text(
+      handle,
+      style: const TextStyle(
         color: Color(0xFF7D8992),
         fontSize: 18,
         fontWeight: FontWeight.w800,
@@ -96,23 +154,33 @@ class _ProfileHandleRow extends StatelessWidget {
   }
 }
 
+/// Cuadrícula breve de métricas principales del perfil, alimentada por el ViewModel.
 class _ProfileStatsGrid extends StatelessWidget {
-  const _ProfileStatsGrid();
+  /// Crea la cuadrícula principal a partir del perfil cargado.
+  const _ProfileStatsGrid({required this.profile});
+
+  final UserProfile? profile;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    final streakValue = profile == null ? '...' : '${profile!.streakDays} días';
+    final xpValue = profile == null ? '...' : '${profile!.totalXp} EXP';
+    final divisionValue = profile == null ? '...' : profile!.leagueName;
+
+    return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _StatTile(icon: '🇺🇸', value: 'Cursos', label: '1'),
-        _StatTile(icon: '🔥', value: 'Siguiendo', label: '0'),
-        _StatTile(icon: '⭐', value: 'Seguidores', label: '0'),
+        _StatTile(icon: '🔥', value: streakValue, label: 'Racha'),
+        _StatTile(icon: '⚡', value: xpValue, label: 'EXP'),
+        _StatTile(icon: '🏆', value: divisionValue, label: 'División'),
       ],
     );
   }
 }
 
+/// Bloque de una métrica con icono, valor y etiqueta descriptiva.
 class _StatTile extends StatelessWidget {
+  /// Crea una tarjeta de estadística compacta.
   const _StatTile({
     required this.icon,
     required this.value,
@@ -131,19 +199,29 @@ class _StatTile extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(color: Color(0xFF9AA7B1), fontSize: 16, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: Color(0xFF9AA7B1),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
   }
 }
 
+/// Botón principal reutilizable de la pantalla de perfil.
 class _ProfileActionButton extends StatelessWidget {
+  /// Crea el botón de acción principal.
   const _ProfileActionButton({required this.label});
 
   final String label;
@@ -157,14 +235,14 @@ class _ProfileActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFF3A4952), width: 3),
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 24),
-          SizedBox(width: 8),
+          const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 24),
+          const SizedBox(width: 8),
           Text(
-            'AGREGA AMIGOS',
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -177,7 +255,9 @@ class _ProfileActionButton extends StatelessWidget {
   }
 }
 
+/// Tarjeta promocional que invita a conectar el puntaje del usuario con LinkedIn.
 class _ProfilePromoCard extends StatelessWidget {
+  /// Crea la tarjeta promocional del perfil.
   const _ProfilePromoCard();
 
   @override
@@ -225,7 +305,9 @@ class _ProfilePromoCard extends StatelessWidget {
   }
 }
 
+/// Título de sección reutilizable para dividir visualmente el contenido del perfil.
 class _ProfileSectionTitle extends StatelessWidget {
+  /// Crea el título de una sección con un texto fijo de contexto.
   const _ProfileSectionTitle({required this.text});
 
   final String text;
@@ -244,11 +326,24 @@ class _ProfileSectionTitle extends StatelessWidget {
   }
 }
 
+/// Cuadrícula de resumen con datos secundarios del perfil provenientes del ViewModel.
 class _ProfileSummaryGrid extends StatelessWidget {
-  const _ProfileSummaryGrid();
+  /// Crea la cuadrícula de resumen con valores dinámicos.
+  const _ProfileSummaryGrid({required this.profile});
+
+  final UserProfile? profile;
 
   @override
   Widget build(BuildContext context) {
+    final gemsValue = profile == null ? '...' : '${profile!.gems} gemas';
+    final heartsValue = profile == null
+        ? '...'
+        : profile!.hearts == -1
+            ? 'Corazones infinitos'
+            : '${profile!.hearts} corazones';
+    final usernameValue = profile == null ? '...' : profile!.username;
+    final leagueValue = profile == null ? '...' : profile!.leagueName;
+
     return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -258,17 +353,19 @@ class _ProfileSummaryGrid extends StatelessWidget {
         crossAxisSpacing: 14,
         childAspectRatio: 2.1,
       ),
-      children: const [
-        _SummaryTile(icon: '🔥', value: '1 día'),
-        _SummaryTile(icon: '🇺🇸', value: '13'),
-        _SummaryTile(icon: '🏆', value: 'Oro'),
-        _SummaryTile(icon: '⚡', value: '2555 EXP'),
+      children: [
+        _SummaryTile(icon: '💎', value: gemsValue),
+        _SummaryTile(icon: '💗', value: heartsValue),
+        _SummaryTile(icon: '👤', value: usernameValue),
+        _SummaryTile(icon: '🏆', value: leagueValue),
       ],
     );
   }
 }
 
+/// Tarjeta compacta usada para resumir un dato adicional del perfil.
 class _SummaryTile extends StatelessWidget {
+  /// Crea una tarjeta resumen con icono y texto principal.
   const _SummaryTile({required this.icon, required this.value});
 
   final String icon;
