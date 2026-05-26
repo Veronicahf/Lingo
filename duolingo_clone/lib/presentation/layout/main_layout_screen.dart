@@ -37,6 +37,24 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     });
   }
 
+  void _showMoreOptionsBottomSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF101820),
+      barrierColor: Colors.black.withValues(alpha: 0.72),
+      isScrollControlled: true,
+      enableDrag: true,
+      isDismissible: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      builder: (_) {
+        return const MoreView();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,6 +69,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _currentIndex,
         onItemSelected: _onItemSelected,
+        onMorePressed: _showMoreOptionsBottomSheet,
       ),
     );
   }

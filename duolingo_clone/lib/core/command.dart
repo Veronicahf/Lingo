@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'package:flutter/material.dart';
 
 /// Contrato base para encapsular una acción ejecutable dentro de la arquitectura MVVM.
 ///
@@ -6,5 +6,5 @@ import 'dart:async';
 /// para desacoplar la vista de la lógica de negocio y mantener el principio de responsabilidad única.
 abstract class Command<T> {
   /// Ejecuta la acción asociada al comando.
-  T execute();
+  T execute([BuildContext? context]);
 }
