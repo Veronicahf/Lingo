@@ -5,15 +5,18 @@ class CustomBottomNavigationBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onItemSelected,
+    required this.onMorePressed,
   });
 
   final int currentIndex;
   final ValueChanged<int> onItemSelected;
+  final VoidCallback onMorePressed;
 
   static const Color _backgroundColor = Color(0xFF101820);
   static const Color _activeColor = Color(0xFF55C7FF);
   static const Color _inactiveColor = Color(0xFF6E7A85);
   static const Color _activeFillColor = Color(0xFF132C3D);
+  static const int _moreIndex = 5;
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +43,15 @@ class CustomBottomNavigationBar extends StatelessWidget {
               child: _BottomNavItem(
                 icon: item.icon,
                 label: item.label,
-                isSelected: isSelected,
-                onTap: () => onItemSelected(index),
+                isSelected: isSelected && index != _moreIndex,
+                onTap: () {
+                  if (index == _moreIndex) {
+                    onMorePressed();
+                    return;
+                  }
+
+                  onItemSelected(index);
+                },
               ),
             );
           }).toList(),

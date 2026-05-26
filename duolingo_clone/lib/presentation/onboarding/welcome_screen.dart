@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../layout/main_layout_screen.dart';
+import '../widgets/mascot_animation_widget.dart';
 
 /// Pantalla de bienvenida inicial que introduce el producto y dirige al usuario al flujo principal.
 ///
@@ -57,27 +58,28 @@ class _WelcomeBrand extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 190,
-          height: 190,
-          decoration: BoxDecoration(
-            color: const Color(0xFF66D94E),
-            borderRadius: BorderRadius.circular(50),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0xFF3E9F2D),
-                offset: Offset(0, 10),
-                blurRadius: 0,
+              Container(
+                width: 220,
+                height: 220,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF15212A),
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0xFF3E9F2D),
+                      offset: Offset(0, 10),
+                      blurRadius: 0,
+                    ),
+                  ],
+                ),
+                child: const MascotAnimationWidget(
+                  assetPath: 'assets/lottie/cat_idle.json',
+                  width: 190,
+                  height: 190,
+                ),
               ),
-            ],
-          ),
-          child: const Icon(
-            Icons.emoji_nature_rounded,
-            size: 112,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 24),
+              const SizedBox(height: 24),
         const Text(
           'LuaLingo',
           style: TextStyle(

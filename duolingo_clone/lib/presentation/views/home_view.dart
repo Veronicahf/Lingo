@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../core/command.dart';
+import '../../core/under_construction_command.dart';
 import '../../models/lesson_node.dart';
 import '../../viewmodels/home_viewmodel.dart';
 import '../lessons/active_lesson_screen.dart';
+import '../shop/shop_screen.dart';
+import '../streak/streak_screen.dart';
 
 /// Pantalla principal que muestra el mapa de lecciones del usuario.
 ///
@@ -19,12 +23,17 @@ class HomeView extends StatefulWidget {
 /// Estado interno de [HomeView] que carga el mapa de lecciones y libera la ViewModel.
 class _HomeViewState extends State<HomeView> {
   late final HomeViewModel _viewModel = HomeViewModel();
+  late final Command<void> _showCourseDialogCommand = _ShowCourseDialogCommand(_showCourseDialog);
+  late final Command<void> _showEnergyDialogCommand = _ShowEnergyDialogCommand(_showEnergyDialog);
+  late final Command<void> _openStreakScreenCommand = _OpenStreakScreenCommand(_openStreakScreen);
+  late final Command<void> _openShopScreenCommand = _OpenShopScreenCommand(_openShopScreen);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _viewModel.loadLessonNodes();
+      _viewModel.loadProfile();
     });
   }
 
@@ -36,39 +45,176 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.transparent,
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 10),
-              const _TopStatsBar(),
-              const SizedBox(height: 14),
-              const _StageBanner(),
-              const SizedBox(height: 18),
-              ListenableBuilder(
-                listenable: _viewModel,
-                builder: (context, child) {
-                  return _LearningPath(lessonNodes: _viewModel.lessonNodes);
-                },
+    return ListenableBuilder(
+      listenable: _viewModel,
+      builder: (context, child) {
+        return Container(
+          color: Colors.transparent,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 10),
+                  _TopStatsBar(
+                    courseScoreLabel: _viewModel.currentCourseScore,
+                    energyLabel: _viewModel.heartsValueText,
+                    streakLabel: _viewModel.streakDaysText,
+                    gemsLabel: _viewModel.gemsText,
+                    onCourseTap: _showCourseDialogCommand.execute,
+                    onStreakTap: _openStreakScreenCommand.execute,
+                    onGemTap: _openShopScreenCommand.execute,
+                    onEnergyTap: _showEnergyDialogCommand.execute,
+                  ),
+                  const SizedBox(height: 14),
+                  const _StageBanner(),
+                  const SizedBox(height: 18),
+                  _LearningPath(lessonNodes: _viewModel.lessonNodes),
+                  const SizedBox(height: 24),
+                ],
               ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+
+  void _showCourseDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      builder: (dialogContext) {
+        return Material(
+          color: Colors.transparent,
+          child: SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 14, top: 68),
+                child: _CourseModalCard(viewModel: _viewModel),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEnergyDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      builder: (dialogContext) {
+        return Material(
+          color: Colors.transparent,
+          child: SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 14, top: 68),
+                child: _EnergyModalCard(viewModel: _viewModel),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openStreakScreen() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const StreakScreen()),
+    );
+  }
+
+  void _openShopScreen() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const ShopScreen()),
+    );
+  }
+}
+
+/// Comando que encapsula la apertura del modal de cursos.
+class _ShowCourseDialogCommand implements Command<void> {
+  /// Crea el comando enlazado a la acción visual correspondiente.
+  const _ShowCourseDialogCommand(this._action);
+
+  final VoidCallback _action;
+
+  @override
+  void execute([BuildContext? context]) {
+    _action();
+  }
+}
+
+/// Comando que encapsula la apertura del modal de energía.
+class _ShowEnergyDialogCommand implements Command<void> {
+  /// Crea el comando enlazado a la acción visual correspondiente.
+  const _ShowEnergyDialogCommand(this._action);
+
+  final VoidCallback _action;
+
+  @override
+  void execute([BuildContext? context]) {
+    _action();
+  }
+}
+
+/// Comando que encapsula la navegación hacia la pantalla de racha.
+class _OpenStreakScreenCommand implements Command<void> {
+  /// Crea el comando enlazado a la navegación.
+  const _OpenStreakScreenCommand(this._action);
+
+  final VoidCallback _action;
+
+  @override
+  void execute([BuildContext? context]) {
+    _action();
+  }
+}
+
+/// Comando que encapsula la navegación hacia la tienda.
+class _OpenShopScreenCommand implements Command<void> {
+  /// Crea el comando enlazado a la navegación.
+  const _OpenShopScreenCommand(this._action);
+
+  final VoidCallback _action;
+
+  @override
+  void execute([BuildContext? context]) {
+    _action();
   }
 }
 
 /// Barra superior con los indicadores de progreso del usuario.
 class _TopStatsBar extends StatelessWidget {
   /// Crea la barra superior con valores decorativos del progreso.
-  const _TopStatsBar();
+  const _TopStatsBar({
+    required this.courseScoreLabel,
+    required this.energyLabel,
+    required this.streakLabel,
+    required this.gemsLabel,
+    required this.onCourseTap,
+    required this.onStreakTap,
+    required this.onGemTap,
+    required this.onEnergyTap,
+  });
+
+  final String courseScoreLabel;
+  final String energyLabel;
+  final String streakLabel;
+  final String gemsLabel;
+  final VoidCallback onCourseTap;
+  final VoidCallback onStreakTap;
+  final VoidCallback onGemTap;
+  final VoidCallback onEnergyTap;
 
   static const Color _flagColor = Color(0xFFFFFFFF);
   static const Color _fireColor = Color(0xFFFFB42B);
@@ -80,34 +226,38 @@ class _TopStatsBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Row(
-        children: const [
+        children: [
           Expanded(
             child: _TopStatItem(
               icon: Icons.flag_rounded,
               iconColor: _flagColor,
-              label: '13',
+              label: courseScoreLabel,
+              onTap: onCourseTap,
             ),
           ),
           Expanded(
             child: _TopStatItem(
               icon: Icons.local_fire_department_rounded,
               iconColor: _fireColor,
-              label: '1',
+              label: streakLabel,
+              onTap: onStreakTap,
             ),
           ),
           Expanded(
             child: _TopStatItem(
               icon: Icons.diamond_rounded,
               iconColor: _gemColor,
-              label: '931',
+              label: gemsLabel,
+              onTap: onGemTap,
             ),
           ),
           Expanded(
             child: _TopStatItem(
               icon: Icons.favorite_rounded,
               iconColor: _heartColor,
-              label: '∞',
+              label: energyLabel,
               useInfinityLabel: true,
+              onTap: onEnergyTap,
             ),
           ),
         ],
@@ -124,16 +274,18 @@ class _TopStatItem extends StatelessWidget {
     required this.iconColor,
     required this.label,
     this.useInfinityLabel = false,
+    this.onTap,
   });
 
   final IconData icon;
   final Color iconColor;
   final String label;
   final bool useInfinityLabel;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final row = Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(icon, color: iconColor, size: 25),
@@ -149,6 +301,220 @@ class _TopStatItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+
+    if (onTap == null) {
+      return row;
+    }
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: row,
+      ),
+    );
+  }
+}
+
+/// Tarjeta flotante que muestra la información del curso actual.
+class _CourseModalCard extends StatelessWidget {
+  /// Crea la tarjeta del modal de cursos a partir del ViewModel del Home.
+  const _CourseModalCard({required this.viewModel});
+
+  final HomeViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 292,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF17212A),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFF2B3943), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.40),
+            offset: const Offset(0, 12),
+            blurRadius: 24,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF24313A),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.flag_rounded,
+                  color: Color(0xFFFFFFFF),
+                  size: 44,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      viewModel.currentCourseName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      viewModel.currentCourseScore,
+                      style: const TextStyle(
+                        color: Color(0xFF9AA7B1),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => const UnderConstructionCommand().execute(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF121A21),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFF3A4650), width: 2),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.add_rounded, color: Color(0xFF9AA7B1), size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    viewModel.coursesButtonLabel,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tarjeta flotante que muestra el estado de energía ilimitada.
+class _EnergyModalCard extends StatelessWidget {
+  /// Crea la tarjeta del modal de energía a partir del ViewModel del Home.
+  const _EnergyModalCard({required this.viewModel});
+
+  final HomeViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 292,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF17212A),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFF2B3943), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.40),
+            offset: const Offset(0, 12),
+            blurRadius: 24,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 108,
+            height: 108,
+            decoration: BoxDecoration(
+              color: const Color(0xFF202A34),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: const Icon(
+              Icons.favorite_rounded,
+              color: Color(0xFFF88CD4),
+              size: 68,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            viewModel.energyDialogTitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            viewModel.energyDialogSubtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF9AA7B1),
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => const UnderConstructionCommand().execute(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF55C7FF),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF55C7FF).withValues(alpha: 0.18),
+                    offset: const Offset(0, 8),
+                    blurRadius: 0,
+                  ),
+                ],
+              ),
+              child: Text(
+                viewModel.energyButtonLabel,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF101820),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
