@@ -29,6 +29,16 @@ class HomeViewModel extends BaseViewModel {
   /// Perfil mock que alimenta la top bar y los modales del Home.
   UserProfile? get profile => _profile;
 
+  /// Título dinámico de la sección actual del mapa.
+  String get currentSectionTitle => 'Sección ${_currentSectionNumber}';
+
+  /// Título dinámico de la etapa actual según el progreso.
+  String get currentStageTitle {
+    final LessonNode? currentLesson = _currentLessonNode;
+    final String stageName = currentLesson?.title ?? 'Primeros pasos';
+    return 'Etapa ${_currentSectionNumber}: $stageName';
+  }
+
   /// Nombre del curso actual mostrado en el modal de cursos.
   String get currentCourseName => _profile?.leagueName ?? 'Curso de inglés';
 
@@ -42,11 +52,7 @@ class HomeViewModel extends BaseViewModel {
   String get gemsText => _profile == null ? '...' : '${_profile!.gems}';
 
   /// Texto mostrado para el estado de energía del Home.
-  String get heartsValueText => _profile == null
-      ? '...'
-      : _profile!.hearts == -1
-          ? '∞'
-          : '${_profile!.hearts}';
+  String get heartsValueText => _profile == null ? '...' : '∞';
 
   /// Título del modal de energía.
   String get energyDialogTitle => 'Energía ilimitada';
@@ -84,5 +90,37 @@ class HomeViewModel extends BaseViewModel {
     } catch (error) {
       setError('No se pudo cargar el perfil del Home.');
     }
+  }
+
+  LessonNode? get _currentLessonNode {
+    if (_lessonNodes.isEmpty) {
+      return null;
+    }
+
+    final int activeIndex = _lessonNodes.indexWhere((node) => node.status == NodeStatus.active);
+    if (activeIndex != -1) {
+      return _lessonNodes[activeIndex];
+    }
+
+    final int lastCompletedIndex =
+        _lessonNodes.lastIndexWhere((node) => node.status == NodeStatus.completed);
+    if (lastCompletedIndex != -1 && lastCompletedIndex + 1 < _lessonNodes.length) {
+      return _lessonNodes[lastCompletedIndex + 1];
+    }
+
+    return _lessonNodes.first;
+  }
+
+  int get _currentSectionNumber {
+    if (_lessonNodes.isEmpty) {
+      return 1;
+    }
+
+    final int currentIndex = _lessonNodes.indexOf(_currentLessonNode ?? _lessonNodes.first);
+    if (currentIndex < 0) {
+      return 1;
+    }
+
+    return (currentIndex ~/ 3) + 1;
   }
 }

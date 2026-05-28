@@ -1,3 +1,4 @@
+import 'audio_service.dart';
 import '../repositories/course_repository.dart';
 import '../repositories/news_repository.dart';
 import '../repositories/shop_repository.dart';
@@ -10,6 +11,7 @@ import '../repositories/user_repository.dart';
 class ServiceLocator {
   ServiceLocator._();
 
+  static late AudioService _audioService;
   static late MockUserRepository _userRepository;
   static late MockCourseRepository _courseRepository;
   static late MockNewsRepository _newsRepository;
@@ -17,11 +19,15 @@ class ServiceLocator {
 
   /// Inicializa las dependencias globales requeridas por la aplicacion.
   static void init() {
+    _audioService = AudioService.instance;
     _userRepository = const MockUserRepository();
     _courseRepository = const MockCourseRepository();
     _newsRepository = const MockNewsRepository();
     _shopRepository = const MockShopRepository();
   }
+
+  /// Servicio de audio compartido para actividades con TTS.
+  static AudioService get audioService => _audioService;
 
   /// Repositorio de usuario disponible para ViewModels y casos de uso.
   static MockUserRepository get userRepository => _userRepository;

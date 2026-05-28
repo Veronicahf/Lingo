@@ -24,7 +24,7 @@ class LessonNode {
   final LessonNodeType type;
 
   /// Estado actual de la leccion.
-  final LessonNodeStatus status;
+  final NodeStatus status;
 
   /// Posicion dentro del mapa, expresada como coordenadas relativas.
   final Offset position;
@@ -46,13 +46,13 @@ enum LessonNodeType {
 }
 
 /// Estados de avance de una leccion en el mapa.
-enum LessonNodeStatus {
-  /// La leccion esta bloqueada y no es interactiva.
-  locked,
+enum NodeStatus {
+  /// La leccion ya fue completada por el usuario.
+  completed,
 
   /// La leccion es la activa actual y puede abrirse.
   active,
 
-  /// La leccion ya fue completada por el usuario.
-  completed,
+  /// La leccion esta bloqueada y no es interactiva.
+  locked,
 }

@@ -1,3 +1,9 @@
+import 'package:flutter/material.dart';
+
+import '../models/lesson_activity.dart';
+import '../models/more_option.dart';
+import '../models/onboarding_question.dart';
+
 /// Representa un usuario persistido en la base de datos en memoria.
 class User {
   /// Crea un usuario con credenciales y progreso simulados.
@@ -147,7 +153,7 @@ class MockDatabase {
       email: 'lingolearner@example.com',
       passwordHash: 'e10adc3949ba59abbe56e057f20f883e',
       name: 'LingoLearner',
-      avatarUrl: 'https://example.com/avatar-lingolearner.png',
+      avatarUrl: 'https://placehold.co/256x256/png?text=Lingo',
       streakDays: 42,
       gems: 1280,
       hearts: -1,
@@ -158,7 +164,7 @@ class MockDatabase {
       email: 'marie@example.com',
       passwordHash: '25f9e794323b453885f5181f1b624d0b',
       name: 'Marie',
-      avatarUrl: 'https://example.com/avatar-marie.png',
+      avatarUrl: 'https://placehold.co/256x256/png?text=Marie',
       streakDays: 28,
       gems: 860,
       hearts: 5,
@@ -169,10 +175,21 @@ class MockDatabase {
       email: 'diego@example.com',
       passwordHash: '5f4dcc3b5aa765d61d8327deb882cf99',
       name: 'Diego',
-      avatarUrl: 'https://example.com/avatar-diego.png',
+      avatarUrl: 'https://placehold.co/256x256/png?text=Diego',
       streakDays: 19,
       gems: 640,
       hearts: 3,
+      currentCourseId: 'course_en',
+    ),
+    const User(
+      id: 'user_04',
+      email: 'adsoft',
+      passwordHash: 'adsoft123',
+      name: 'Adsoft',
+      avatarUrl: 'https://placehold.co/256x256/png?text=Adsoft',
+      streakDays: 15,
+      gems: 500,
+      hearts: 5,
       currentCourseId: 'course_en',
     ),
   ];
@@ -219,6 +236,157 @@ class MockDatabase {
     ),
   ];
 
+  static final List<OnboardingQuestion> _onboardingQuestions = <OnboardingQuestion>[
+    const OnboardingQuestion(
+      title: '¿Qué te gustaría aprender?',
+      animationPath: 'assets/lottie/cat_happy.json',
+      options: [
+        OnboardingOption(text: 'Inglés', isEnabled: true),
+        OnboardingOption(text: 'Francés', isEnabled: false),
+        OnboardingOption(text: 'Ajedrez', isEnabled: false),
+        OnboardingOption(text: 'Italiano', isEnabled: false),
+      ],
+    ),
+    const OnboardingQuestion(
+      title: '¿Cómo supiste de Duolingo?',
+      animationPath: 'assets/lottie/Cat_typing.json',
+      options: [
+        OnboardingOption(text: 'Amigos/familia'),
+        OnboardingOption(text: 'Búsqueda en Google'),
+        OnboardingOption(text: 'Facebook/Instagram'),
+        OnboardingOption(text: 'YouTube'),
+        OnboardingOption(text: 'Noticias/artículos/blog'),
+      ],
+    ),
+    const OnboardingQuestion(
+      title: '¿Cuánto inglés sabes?',
+      animationPath: 'assets/lottie/cat_idle.json',
+      options: [
+        OnboardingOption(text: 'Estoy empezando a aprender inglés'),
+        OnboardingOption(text: 'Conozco algunas palabras comunes'),
+        OnboardingOption(text: 'Puedo mantener conversaciones simples'),
+        OnboardingOption(text: 'Puedo conversar sobre varios temas'),
+        OnboardingOption(text: 'Puedo debatir en detalle sobre la mayoría de los temas'),
+      ],
+    ),
+    const OnboardingQuestion(
+      title: '¿Cuál es tu meta diaria de aprendizaje?',
+      animationPath: 'assets/lottie/cat_sleeping.json',
+      options: [
+        OnboardingOption(text: '3 min/día'),
+        OnboardingOption(text: '10 min/día'),
+        OnboardingOption(text: '15 min/día'),
+        OnboardingOption(text: '30 min/día'),
+      ],
+    ),
+    const OnboardingQuestion(
+      title: '¿Por qué quieres aprender?',
+      animationPath: 'assets/lottie/cat_happy.json',
+      options: [
+        OnboardingOption(text: 'Para divertirme'),
+        OnboardingOption(text: 'Prepararme para viajar'),
+        OnboardingOption(text: 'Ejercitar mi mente'),
+        OnboardingOption(text: 'Impulsar mis estudios'),
+        OnboardingOption(text: 'Impulsar mi carrera profesional'),
+        OnboardingOption(text: 'Conectarme con personas'),
+        OnboardingOption(text: 'Otros'),
+      ],
+      allowMultipleSelection: true,
+    ),
+    const OnboardingQuestion(
+      title: '¿Qué formato te ayuda más a aprender?',
+      animationPath: 'assets/lottie/Cat_in_a_rocket.json',
+      options: [
+        OnboardingOption(text: 'Practicar leyendo'),
+        OnboardingOption(text: 'Practicar escuchando'),
+        OnboardingOption(text: 'Hablar con confianza'),
+        OnboardingOption(text: 'Juegos cortos'),
+      ],
+    ),
+    const OnboardingQuestion(
+      title: '¿Cuándo quieres aprender?',
+      animationPath: 'assets/lottie/cat_happy.json',
+      options: [
+        OnboardingOption(text: 'Mañana'),
+        OnboardingOption(text: 'Tarde'),
+        OnboardingOption(text: 'Noche'),
+      ],
+    ),
+    const OnboardingQuestion(
+      title: '¿Listo para comenzar tu primera lección?',
+      animationPath: 'assets/lottie/cat_happy.json',
+      options: [
+        OnboardingOption(text: 'Sí, empecemos'),
+        OnboardingOption(text: 'Necesito un poco más'),
+      ],
+    ),
+  ];
+
+  static final List<LessonActivity> _lessonActivities = <LessonActivity>[
+    const LessonActivity(
+      id: 'lesson_activity_01',
+      type: ActivityType.selectTranslation,
+      prompt: 'Selecciona la traduccion correcta de la frase.',
+      payload: <String, dynamic>{
+        'textToTranslate': 'The cat',
+        'title': 'Selecciona la traducción correcta',
+        'options': <String>['El gato', 'La casa', 'El libro', 'La mesa'],
+      },
+      correctAnswer: 'El gato',
+      aiExplanation: 'La forma correcta es "El gato" porque "the cat" se traduce literalmente como "el gato". El artículo "the" indica que es un sustantivo específico.',
+    ),
+    const LessonActivity(
+      id: 'lesson_activity_02',
+      type: ActivityType.matchPairs,
+      prompt: 'Empareja cada palabra con su traduccion correcta.',
+      payload: <String, String>{
+        'casa': 'house',
+        'manzana': 'apple',
+        'agua': 'water',
+      },
+      correctAnswer: 'all_matched',
+      aiExplanation: 'Emparejar por significado ayuda a no confundir términos cercanos. Una buena estrategia es buscar primero el equivalente más obvio y luego validar los pares restantes.',
+    ),
+    const LessonActivity(
+      id: 'lesson_activity_03',
+      type: ActivityType.translateSentence,
+      prompt: 'Traduce la oracion completa al ingles.',
+      payload: <String, dynamic>{
+        'sentence': 'Yo estudio ingles cada dia.',
+        'hint': 'I study English every day.',
+      },
+      correctAnswer: 'I study English every day.',
+      aiExplanation: 'La traducción correcta mantiene el sujeto, el verbo en presente y el complemento al final. En inglés, la estructura suele ser sujeto + verbo + objeto o complemento.',
+    ),
+  ];
+
+  static final List<MoreOption> _moreOptions = <MoreOption>[
+    const MoreOption(
+      id: 'sounds',
+      title: 'Sonidos',
+      subtitle: 'Practica vocales y consonantes',
+      icon: Icons.graphic_eq_rounded,
+      accentColor: Color(0xFF8FE3FF),
+      iconBackground: Color(0xFF0F6E8C),
+    ),
+    const MoreOption(
+      id: 'practice_center',
+      title: 'Centro de Práctica',
+      subtitle: 'Ejercicios guiados',
+      icon: Icons.fitness_center_rounded,
+      accentColor: Color(0xFFFFD36A),
+      iconBackground: Color(0xFF8B5E00),
+    ),
+    const MoreOption(
+      id: 'video_call',
+      title: 'Videollamada',
+      subtitle: 'Lecciones con personajes',
+      icon: Icons.video_call_rounded,
+      accentColor: Color(0xFFB8A5FF),
+      iconBackground: Color(0xFF5A3CB3),
+    ),
+  ];
+
   /// Usuarios disponibles en memoria.
   List<User> get users => _users;
 
@@ -227,6 +395,15 @@ class MockDatabase {
 
   /// Feed de publicaciones disponible en memoria.
   List<NewsPost> get newsFeed => _newsFeed;
+
+  /// Preguntas disponibles para el onboarding.
+  List<OnboardingQuestion> get onboardingQuestions => _onboardingQuestions;
+
+  /// Actividades disponibles para una leccion de prueba.
+  List<LessonActivity> get lessonActivities => _lessonActivities;
+
+  /// Opciones disponibles para el BottomSheet de la sección Más.
+  List<MoreOption> get moreOptions => _moreOptions;
 
   /// Devuelve el usuario actualmente activo.
   User? get currentUser {

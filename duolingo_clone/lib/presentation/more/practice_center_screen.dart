@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/under_construction_command.dart';
+
 class PracticeCenterScreen extends StatelessWidget {
   const PracticeCenterScreen({super.key});
 
@@ -147,26 +149,29 @@ class _PracticeCard extends StatelessWidget {
                 const SizedBox(height: 14),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: color.withValues(alpha: 0.55),
-                          offset: const Offset(0, 6),
-                          blurRadius: 0,
+                  child: GestureDetector(
+                    onTap: () => const UnderConstructionCommand().execute(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.55),
+                            offset: const Offset(0, 6),
+                            blurRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        buttonLabel,
+                        style: const TextStyle(
+                          color: Color(0xFF0C1520),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.7,
                         ),
-                      ],
-                    ),
-                    child: Text(
-                      buttonLabel,
-                      style: const TextStyle(
-                        color: Color(0xFF0C1520),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.7,
                       ),
                     ),
                   ),

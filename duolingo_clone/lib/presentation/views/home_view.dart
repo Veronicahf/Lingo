@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/command.dart';
@@ -69,7 +71,10 @@ class _HomeViewState extends State<HomeView> {
                     onEnergyTap: _showEnergyDialogCommand.execute,
                   ),
                   const SizedBox(height: 14),
-                  const _StageBanner(),
+                  _StageBanner(
+                    sectionTitle: _viewModel.currentSectionTitle,
+                    stageTitle: _viewModel.currentStageTitle,
+                  ),
                   const SizedBox(height: 18),
                   _LearningPath(lessonNodes: _viewModel.lessonNodes),
                   const SizedBox(height: 24),
@@ -528,7 +533,10 @@ class _EnergyModalCard extends StatelessWidget {
 /// Banner de etapa que contextualiza el tema actual del mapa.
 class _StageBanner extends StatelessWidget {
   /// Crea el banner de etapa superior.
-  const _StageBanner();
+  const _StageBanner({required this.sectionTitle, required this.stageTitle});
+
+  final String sectionTitle;
+  final String stageTitle;
 
   static const Color _cardColor = Color(0xFFCE78F8);
   static const Color _shadowColor = Color(0xFF8F4CB4);
@@ -556,20 +564,20 @@ class _StageBanner extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(22, 18, 16, 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      'ETAPA 2, SECCIÓN 7',
-                      style: TextStyle(
+                      sectionTitle,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.3,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'Habla de comidas',
-                      style: TextStyle(
+                      stageTitle,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -614,128 +622,340 @@ class _LearningPath extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double pathHeight = _computePathHeight(lessonNodes);
-
-    return SizedBox(
-      height: pathHeight,
-      child: Stack(
-        children: lessonNodes.map((lessonNode) => _PathLesson(node: lessonNode)).toList(),
-      ),
-    );
-  }
-
-  double _computePathHeight(List<LessonNode> nodes) {
-    if (nodes.isEmpty) {
-      return 420;
+    if (lessonNodes.isEmpty) {
+      return const SizedBox(height: 420);
     }
 
-    final double maxY = nodes
-        .map((lessonNode) => lessonNode.position.dy)
-        .reduce((current, next) => current > next ? current : next);
-    return maxY + 220;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final _PathLayout layout = _PathLayout.build(
+          lessonNodes: lessonNodes,
+          width: constraints.maxWidth,
+        );
+
+        return SizedBox(
+          height: layout.totalHeight,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _PathLinePainter(nodes: lessonNodes, centers: layout.centers),
+                ),
+              ),
+              for (final item in layout.items)
+                _PathLesson(
+                  node: item.node,
+                  left: item.left,
+                  top: item.top,
+                  size: item.size,
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
 /// Nodo posicionado que traduce un [LessonNode] en una pieza visual del mapa.
 class _PathLesson extends StatelessWidget {
   /// Crea un nodo visual a partir de su modelo de dominio.
-  const _PathLesson({required this.node});
+  const _PathLesson({
+    required this.node,
+    required this.left,
+    required this.top,
+    required this.size,
+  });
 
   final LessonNode node;
+  final double left;
+  final double top;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     final Widget child = switch (node.type) {
       LessonNodeType.boss => _CharacterNode(
-          size: 118,
-          active: node.status != LessonNodeStatus.locked,
+          size: size,
+          status: node.status,
         ),
       _ => _LessonNode(
-          size: 88,
+          size: size,
           node: node,
         ),
     };
 
-    final bool isActive = node.status == LessonNodeStatus.active;
+    final bool isLocked = node.status == NodeStatus.locked;
 
     return Positioned(
-      top: node.position.dy,
-      left: node.position.dx,
+      top: top,
+      left: left,
       child: Semantics(
         label: node.title,
-        button: isActive,
-        child: isActive
-            ? GestureDetector(
-                // TODO: Extraer a un Command (ej. StartLessonCommand) cuando se implemente HomeViewModel.
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => const ActiveLessonScreen(),
-                    ),
-                  );
-                },
-                child: child,
-              )
-            : child,
+        button: !isLocked,
+        child: GestureDetector(
+          onTap: () {
+            if (isLocked) {
+              _showLockedLessonMessage(context);
+              return;
+            }
+
+            Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => const ActiveLessonScreen(),
+              ),
+            );
+          },
+          child: child,
+        ),
       ),
     );
   }
 }
 
+/// Distribución calculada para pintar un mapa en zig-zag.
+class _PathLayout {
+  /// Crea un layout de recorrido con posición y centros para la línea de conexión.
+  const _PathLayout({required this.items, required this.centers, required this.totalHeight});
+
+  final List<_PathItemPlacement> items;
+  final List<Offset> centers;
+  final double totalHeight;
+
+  static _PathLayout build({required List<LessonNode> lessonNodes, required double width}) {
+    const double horizontalMargin = 22;
+    const double topPadding = 12;
+    const double verticalGap = 132;
+    const double bossSize = 118;
+    const double normalSize = 88;
+
+    final List<_PathItemPlacement> items = <_PathItemPlacement>[];
+    final List<Offset> centers = <Offset>[];
+
+    double currentCenterY = topPadding + normalSize / 2;
+
+    for (var index = 0; index < lessonNodes.length; index++) {
+      final LessonNode node = lessonNodes[index];
+      final bool isBoss = node.type == LessonNodeType.boss;
+      final double size = isBoss ? bossSize : normalSize;
+      final double left = isBoss
+          ? (width - size) / 2
+          : index.isEven
+              ? horizontalMargin
+              : width - size - horizontalMargin;
+      final double top = currentCenterY - size / 2;
+
+      items.add(_PathItemPlacement(node: node, left: left, top: top, size: size));
+      centers.add(Offset(left + size / 2, top + size / 2));
+
+      currentCenterY += isBoss ? verticalGap + 18 : verticalGap;
+    }
+
+    final double totalHeight = items.isEmpty ? 420 : items.last.top + items.last.size + 40;
+    return _PathLayout(items: items, centers: centers, totalHeight: totalHeight);
+  }
+}
+
+/// Posición calculada para un nodo individual del recorrido.
+class _PathItemPlacement {
+  /// Crea una ubicación para un nodo.
+  const _PathItemPlacement({required this.node, required this.left, required this.top, required this.size});
+
+  final LessonNode node;
+  final double left;
+  final double top;
+  final double size;
+}
+
+/// Pintor de la línea de conexión entre LessonNode.
+class _PathLinePainter extends CustomPainter {
+  /// Crea un pintor con la secuencia de centros a conectar.
+  const _PathLinePainter({required this.nodes, required this.centers});
+
+  final List<LessonNode> nodes;
+  final List<Offset> centers;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (centers.length < 2 || nodes.length < 2) {
+      return;
+    }
+
+    for (var index = 1; index < centers.length; index++) {
+      final Offset previous = centers[index - 1];
+      final Offset current = centers[index];
+      final NodeStatus previousStatus = nodes[index - 1].status;
+      final NodeStatus currentStatus = nodes[index].status;
+      final double midY = (previous.dy + current.dy) / 2;
+
+      final Color segmentColor;
+      if (currentStatus == NodeStatus.locked) {
+        segmentColor = const Color(0xFF66737C);
+      } else if (previousStatus == NodeStatus.completed && currentStatus == NodeStatus.completed) {
+        segmentColor = const Color(0xFF9EEB2A);
+      } else if (previousStatus == NodeStatus.active || currentStatus == NodeStatus.active) {
+        segmentColor = const Color(0xFF6D5CFF);
+      } else {
+        segmentColor = const Color(0xFF49D8FF);
+      }
+
+      final Path segmentPath = Path()..moveTo(previous.dx, previous.dy);
+      segmentPath
+        ..quadraticBezierTo(previous.dx, midY, (previous.dx + current.dx) / 2, midY)
+        ..quadraticBezierTo(current.dx, midY, current.dx, current.dy);
+
+      final Paint paint = Paint()
+        ..color = segmentColor
+        ..strokeWidth = 6
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawPath(segmentPath, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PathLinePainter oldDelegate) => oldDelegate.centers != centers;
+}
+
 /// Nodo circular reutilizable para representar una leccion del mapa.
-class _LessonNode extends StatelessWidget {
+class _LessonNode extends StatefulWidget {
   /// Crea el render visual de una leccion basada en su tipo y estado.
   const _LessonNode({required this.size, required this.node});
 
   final double size;
   final LessonNode node;
 
-  static const Color _activeColor = Color(0xFFC775F4);
-  static const Color _activeShadow = Color(0xFF7A4AA8);
-  static const Color _lockedColor = Color(0xFF495560);
-  static const Color _lockedIconColor = Color(0xFF74818B);
+  @override
+  State<_LessonNode> createState() => _LessonNodeState();
+}
 
-  IconData get _icon {
-    return switch (node.type) {
-      LessonNodeType.star => Icons.star_rounded,
-      LessonNodeType.book => Icons.menu_book_rounded,
-      LessonNodeType.dumbbell => Icons.fitness_center_rounded,
-      LessonNodeType.boss => Icons.lock_rounded,
+class _LessonNodeState extends State<_LessonNode> with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1150),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.node.status == NodeStatus.active) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _LessonNode oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final bool isActive = widget.node.status == NodeStatus.active;
+    if (isActive && !_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    } else if (!isActive && _pulseController.isAnimating) {
+      _pulseController.stop();
+      _pulseController.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  IconData _iconForNode() {
+    return switch (widget.node.status) {
+      NodeStatus.completed => widget.node.type == LessonNodeType.boss
+          ? Icons.workspace_premium_rounded
+          : Icons.star_rounded,
+      NodeStatus.active => switch (widget.node.type) {
+          LessonNodeType.star => Icons.star_rounded,
+          LessonNodeType.book => Icons.menu_book_rounded,
+          LessonNodeType.dumbbell => Icons.fitness_center_rounded,
+          LessonNodeType.boss => Icons.workspace_premium_rounded,
+        },
+      NodeStatus.locked => switch (widget.node.type) {
+          LessonNodeType.star => Icons.star_outline_rounded,
+          LessonNodeType.book => Icons.menu_book_outlined,
+          LessonNodeType.dumbbell => Icons.fitness_center_outlined,
+          LessonNodeType.boss => Icons.lock_rounded,
+        },
+    };
+  }
+
+  Color _backgroundColor() {
+    return switch (widget.node.status) {
+      NodeStatus.completed => const Color(0xFF30D158),
+      NodeStatus.active => const Color(0xFF6D5CFF),
+      NodeStatus.locked => const Color(0xFF5C6670),
+    };
+  }
+
+  Color _shadowColor() {
+    return switch (widget.node.status) {
+      NodeStatus.completed => const Color(0xFF14914C),
+      NodeStatus.active => const Color(0xFF4636B5),
+      NodeStatus.locked => Colors.transparent,
+    };
+  }
+
+  Color _iconColor() {
+    return switch (widget.node.status) {
+      NodeStatus.completed => Colors.white,
+      NodeStatus.active => Colors.white,
+      NodeStatus.locked => const Color(0xFF2C363D),
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isActive = node.status == LessonNodeStatus.active;
-    final bool isCompleted = node.status == LessonNodeStatus.completed;
-    final Color backgroundColor = isActive || isCompleted ? _activeColor : _lockedColor;
-    final Color iconColor = isActive || isCompleted ? Colors.white : _lockedIconColor;
-    final List<BoxShadow> shadows = [
-      BoxShadow(
-        color: isActive || isCompleted ? _activeShadow : Colors.black.withValues(alpha: 0.14),
-        offset: const Offset(0, 8),
-        blurRadius: 0,
-      ),
-    ];
+    final bool isActive = widget.node.status == NodeStatus.active;
+    final bool isCompleted = widget.node.status == NodeStatus.completed;
 
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-        boxShadow: shadows,
-      ),
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        final double pulseScale = isActive ? 1 + (math.sin(_pulseController.value * math.pi * 2) * 0.04) : 1;
+
+        return Transform.scale(
+          scale: pulseScale,
+          child: child,
+        );
+      },
       child: Container(
-        margin: const EdgeInsets.all(8),
+        width: widget.size,
+        height: widget.size,
         decoration: BoxDecoration(
+          color: _backgroundColor(),
           shape: BoxShape.circle,
-          color: isActive || isCompleted
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.03),
+          boxShadow: widget.node.status == NodeStatus.locked
+              ? const <BoxShadow>[]
+              : [
+                  BoxShadow(
+                    color: _shadowColor().withValues(alpha: isCompleted ? 0.9 : 0.85),
+                    offset: const Offset(0, 8),
+                    blurRadius: 0,
+                  ),
+                ],
         ),
-        child: Icon(_icon, color: iconColor, size: size * 0.42),
+        child: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isCompleted || isActive
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.white.withValues(alpha: 0.04),
+          ),
+          child: Icon(
+            _iconForNode(),
+            color: _iconColor(),
+            size: isActive
+                ? widget.size * 0.5
+                : isCompleted
+                    ? widget.size * 0.44
+                    : widget.size * 0.4,
+          ),
+        ),
       ),
     );
   }
@@ -746,20 +966,36 @@ class _CharacterNode extends StatelessWidget {
   /// Crea la version ilustrada del boss del mapa.
   const _CharacterNode({
     required this.size,
-    required this.active,
+    required this.status,
   });
 
   final double size;
-  final bool active;
+  final NodeStatus status;
 
-  static const Color _activeColor = Color(0xFFC775F4);
-  static const Color _lockedColor = Color(0xFF495560);
-  static const Color _lockedIconColor = Color(0xFF74818B);
+  static const Color _completedColor = Color(0xFF30D158);
+  static const Color _activeColor = Color(0xFF6D5CFF);
+  static const Color _lockedColor = Color(0xFF5C6670);
+  static const Color _lockedIconColor = Color(0xFF2C363D);
 
   @override
   Widget build(BuildContext context) {
-    final Color bodyColor = active ? _activeColor : _lockedColor;
-    final Color faceColor = active ? Colors.white : _lockedIconColor;
+    final bool isCompleted = status == NodeStatus.completed;
+    final bool isActive = status == NodeStatus.active;
+    final Color bodyColor = isCompleted
+        ? _completedColor
+        : isActive
+            ? _activeColor
+            : _lockedColor;
+    final Color faceColor = isCompleted || isActive ? Colors.white : _lockedIconColor;
+    final List<BoxShadow> shadows = status == NodeStatus.locked
+        ? const <BoxShadow>[]
+        : [
+            BoxShadow(
+              color: (isCompleted ? const Color(0xFF14914C) : const Color(0xFF4636B5)).withValues(alpha: 0.88),
+              offset: const Offset(0, 8),
+              blurRadius: 0,
+            ),
+          ];
 
     return SizedBox(
       width: size,
@@ -773,25 +1009,50 @@ class _CharacterNode extends StatelessWidget {
             decoration: BoxDecoration(
               color: bodyColor,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.14),
-                  offset: const Offset(0, 8),
-                  blurRadius: 0,
-                ),
-              ],
+              boxShadow: shadows,
             ),
           ),
           Positioned(
             top: size * 0.22,
-            child: Icon(Icons.person_rounded, color: faceColor.withValues(alpha: 0.78), size: size * 0.36),
+            child: Icon(
+              isCompleted ? Icons.workspace_premium_rounded : Icons.person_rounded,
+              color: faceColor.withValues(alpha: 0.8),
+              size: size * 0.36,
+            ),
           ),
           Positioned(
             bottom: size * 0.12,
-            child: Icon(Icons.stars_rounded, color: faceColor.withValues(alpha: 0.55), size: size * 0.26),
+            child: Icon(
+              isCompleted ? Icons.star_rounded : Icons.stars_rounded,
+              color: faceColor.withValues(alpha: 0.58),
+              size: size * 0.26,
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+/// Muestra una respuesta breve cuando el usuario toca una leccion bloqueada.
+void _showLockedLessonMessage(BuildContext context) {
+  ScaffoldMessenger.of(context)
+    ..clearSnackBars()
+    ..showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Debes completar las lecciones anteriores',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Color(0xFF2B3138),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.fromLTRB(16, 0, 16, 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+      ),
+    );
 }

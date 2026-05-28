@@ -6,6 +6,7 @@ class UserProfile {
   /// Crea un perfil de usuario con sus métricas de progreso.
   const UserProfile({
     required this.username,
+    required this.avatarUrl,
     required this.streakDays,
     required this.gems,
     required this.hearts,
@@ -15,6 +16,9 @@ class UserProfile {
 
   /// Nombre visible del usuario.
   final String username;
+
+  /// URL del avatar visible del usuario.
+  final String avatarUrl;
 
   /// Días consecutivos de racha activa.
   final int streakDays;

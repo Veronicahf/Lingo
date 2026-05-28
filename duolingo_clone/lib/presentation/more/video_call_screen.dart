@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/under_construction_command.dart';
+
 class VideoCallScreen extends StatelessWidget {
   const VideoCallScreen({super.key});
 
@@ -63,24 +65,27 @@ class VideoCallScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          offset: const Offset(0, 8),
-                          blurRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: const Text(
-                      'PRUÉBALO POR 0,00 MXN',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF3C1F75), fontSize: 18, fontWeight: FontWeight.w900),
+                  GestureDetector(
+                    onTap: () => const UnderConstructionCommand().execute(context),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            offset: const Offset(0, 8),
+                            blurRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        'PRUÉBALO POR 0,00 MXN',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Color(0xFF3C1F75), fontSize: 18, fontWeight: FontWeight.w900),
+                      ),
                     ),
                   ),
                 ],
@@ -128,62 +133,65 @@ class _RecentCallCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A272F),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(Icons.mail_outline_rounded, color: Color(0xFF9AA7B1), size: 18),
-                          const SizedBox(width: 6),
-                          Text(date, style: const TextStyle(color: Color(0xFF9AA7B1), fontSize: 15)),
-                        ],
-                      ),
-                    ],
+      child: GestureDetector(
+        onTap: () => const UnderConstructionCommand().execute(context),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A272F),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.mail_outline_rounded, color: Color(0xFF9AA7B1), size: 18),
+                            const SizedBox(width: 6),
+                            Text(date, style: const TextStyle(color: Color(0xFF9AA7B1), fontSize: 15)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF5151),
-                    borderRadius: BorderRadius.circular(14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF5151),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      badge,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
                   ),
-                  child: Text(
-                    badge,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Container(
-              height: 190,
-              decoration: BoxDecoration(
-                color: const Color(0xFF53217F),
-                borderRadius: BorderRadius.circular(18),
+                ],
               ),
-              child: const Center(
-                child: CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.play_arrow_rounded, color: Color(0xFF5A24A1), size: 34),
+              const SizedBox(height: 14),
+              Container(
+                height: 190,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF53217F),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Center(
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.play_arrow_rounded, color: Color(0xFF5A24A1), size: 34),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

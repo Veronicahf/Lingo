@@ -6,6 +6,7 @@ class StreakCalendarDay {
   /// Crea un dia del calendario con su estado visual.
   const StreakCalendarDay({
     required this.dayNumber,
+    required this.date,
     this.isFrozen = false,
     this.isToday = false,
     this.isStreakDay = false,
@@ -13,6 +14,9 @@ class StreakCalendarDay {
 
   /// Numero de dia dentro del calendario.
   final int dayNumber;
+
+  /// Fecha completa asociada a la celda del calendario.
+  final DateTime date;
 
   /// Indica si el dia se muestra como congelado.
   final bool isFrozen;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/under_construction_command.dart';
 import '../../models/news_article.dart';
 import '../../viewmodels/news_viewmodel.dart';
 
@@ -335,8 +336,11 @@ class _SmallActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final VoidCallback effectiveOnTap =
+        onTap ?? () => const UnderConstructionCommand().execute(context);
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: effectiveOnTap,
       child: Container(
         height: 54,
         width: label.isEmpty ? 54 : 92,

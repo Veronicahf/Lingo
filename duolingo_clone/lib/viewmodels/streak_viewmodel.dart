@@ -19,6 +19,7 @@ class StreakViewModel extends BaseViewModel {
 
   UserProfile? _profile;
   List<StreakCalendarDay> _personalCalendar = const [];
+  List<DateTime> _activeStreakDates = const [];
 
   /// Perfil del usuario usado en la cabecera de racha.
   UserProfile? get profile => _profile;
@@ -28,6 +29,9 @@ class StreakViewModel extends BaseViewModel {
 
   /// Calendario simulado de la pestaña personal.
   List<StreakCalendarDay> get personalCalendar => _personalCalendar;
+
+  /// Fechas activas de la racha calculadas a partir del usuario actual.
+  List<DateTime> get activeStreakDates => _activeStreakDates;
 
   /// Cantidad de protectores de racha disponibles.
   int get streakProtectors => 0;
@@ -56,6 +60,7 @@ class StreakViewModel extends BaseViewModel {
 
     try {
       _profile = await _userRepository.getUserProfile();
+      _activeStreakDates = _buildActiveStreakDates(_profile?.streakDays ?? 0);
       _personalCalendar = _buildPersonalCalendar();
       setSuccess();
     } catch (error) {
@@ -63,20 +68,43 @@ class StreakViewModel extends BaseViewModel {
     }
   }
 
+  List<DateTime> _buildActiveStreakDates(int streakDays) {
+    if (streakDays <= 0) {
+      return const [];
+    }
+
+    final DateTime today = _dateOnly(DateTime.now());
+
+    return List<DateTime>.generate(
+      streakDays,
+      (index) => today.subtract(Duration(days: index)),
+      growable: false,
+    );
+  }
+
   List<StreakCalendarDay> _buildPersonalCalendar() {
-    return const [
-      StreakCalendarDay(dayNumber: 20, isStreakDay: true),
-      StreakCalendarDay(dayNumber: 21, isFrozen: true),
-      StreakCalendarDay(dayNumber: 22, isFrozen: true),
-      StreakCalendarDay(dayNumber: 23),
-      StreakCalendarDay(dayNumber: 24),
-      StreakCalendarDay(dayNumber: 25, isToday: true),
-      StreakCalendarDay(dayNumber: 26),
-      StreakCalendarDay(dayNumber: 27),
-      StreakCalendarDay(dayNumber: 28),
-      StreakCalendarDay(dayNumber: 29),
-      StreakCalendarDay(dayNumber: 30),
-      StreakCalendarDay(dayNumber: 31),
-    ];
+    final DateTime monthStart = DateTime(2026, 5, 20);
+    final DateTime today = _dateOnly(DateTime.now());
+
+    return List<StreakCalendarDay>.generate(12, (index) {
+      final DateTime date = _dateOnly(monthStart.add(Duration(days: index)));
+      final bool isStreakDay = activeStreakDates.any((activeDate) => _isSameDay(activeDate, date));
+
+      return StreakCalendarDay(
+        dayNumber: date.day,
+        date: date,
+        isFrozen: date.isAfter(today),
+        isToday: _isSameDay(date, today),
+        isStreakDay: isStreakDay,
+      );
+    }, growable: false);
+  }
+
+  DateTime _dateOnly(DateTime dateTime) {
+    return DateTime(dateTime.year, dateTime.month, dateTime.day);
+  }
+
+  bool _isSameDay(DateTime left, DateTime right) {
+    return left.year == right.year && left.month == right.month && left.day == right.day;
   }
 }

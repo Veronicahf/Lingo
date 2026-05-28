@@ -421,14 +421,15 @@ class _CalendarDayTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasActiveStreak = day.isStreakDay;
     final Color backgroundColor = day.isToday
         ? const Color(0xFF5B6772)
         : day.isFrozen
             ? const Color(0xFF74D7FF).withValues(alpha: 0.35)
-            : day.isStreakDay
+            : hasActiveStreak
                 ? const Color(0xFFFFB53D)
                 : const Color(0xFF26323A);
-    final Color textColor = day.isFrozen || day.isToday || day.isStreakDay ? Colors.black : const Color(0xFF7D8992);
+    final Color textColor = day.isFrozen || day.isToday || hasActiveStreak ? Colors.black : const Color(0xFF7D8992);
 
     return Container(
       alignment: Alignment.center,
