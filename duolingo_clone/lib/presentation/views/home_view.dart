@@ -86,13 +86,16 @@ class _HomeViewState extends State<HomeView> {
     showDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (dialogContext) {
-        return Material(
-          color: Colors.transparent,
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(0),
           child: SafeArea(
             child: Align(
               alignment: Alignment.topLeft,
+              widthFactor: 1,
+              heightFactor: 1,
               child: Padding(
                 padding: const EdgeInsets.only(left: 14, top: 68),
                 child: _CourseModalCard(viewModel: _viewModel),
@@ -108,13 +111,16 @@ class _HomeViewState extends State<HomeView> {
     showDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (dialogContext) {
-        return Material(
-          color: Colors.transparent,
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(0),
           child: SafeArea(
             child: Align(
               alignment: Alignment.topRight,
+              widthFactor: 1,
+              heightFactor: 1,
               child: Padding(
                 padding: const EdgeInsets.only(right: 14, top: 68),
                 child: _EnergyModalCard(viewModel: _viewModel),

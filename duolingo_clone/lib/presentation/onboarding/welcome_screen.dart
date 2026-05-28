@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../layout/main_layout_screen.dart';
 import '../widgets/mascot_animation_widget.dart';
+import 'login_screen.dart';
+import 'onboarding_wizard_screen.dart';
 
 /// Pantalla de bienvenida inicial que introduce el producto y dirige al usuario al flujo principal.
 ///
@@ -34,7 +35,7 @@ class WelcomeScreen extends StatelessWidget {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute<void>(
-                      builder: (_) => const MainLayoutScreen(),
+                      builder: (_) => const OnboardingWizardScreen(),
                     ),
                   );
                 },
@@ -141,22 +142,32 @@ class _SecondaryLoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: WelcomeScreen._secondaryBorderColor, width: 3),
-      ),
-      child: const Text(
-        'YA TENGO UNA CUENTA',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: Color(0xFFC3CFD9),
-          fontSize: 18,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.7,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => const LoginScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: WelcomeScreen._secondaryBorderColor, width: 3),
+        ),
+        child: const Text(
+          'YA TENGO UNA CUENTA',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFFC3CFD9),
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.7,
+          ),
         ),
       ),
     );

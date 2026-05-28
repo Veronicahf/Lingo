@@ -28,6 +28,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   ];
 
   void _onItemSelected(int index) {
+    if (index == 5) {
+      _showMoreOptionsBottomSheet();
+      return;
+    }
+
     if (index == _currentIndex) {
       return;
     }

@@ -1,4 +1,5 @@
 import '../repositories/course_repository.dart';
+import '../repositories/news_repository.dart';
 import '../repositories/shop_repository.dart';
 import '../repositories/user_repository.dart';
 
@@ -11,12 +12,14 @@ class ServiceLocator {
 
   static late MockUserRepository _userRepository;
   static late MockCourseRepository _courseRepository;
+  static late MockNewsRepository _newsRepository;
   static late MockShopRepository _shopRepository;
 
   /// Inicializa las dependencias globales requeridas por la aplicacion.
   static void init() {
     _userRepository = const MockUserRepository();
     _courseRepository = const MockCourseRepository();
+    _newsRepository = const MockNewsRepository();
     _shopRepository = const MockShopRepository();
   }
 
@@ -25,6 +28,9 @@ class ServiceLocator {
 
   /// Repositorio de cursos disponible para el mapa de lecciones.
   static MockCourseRepository get courseRepository => _courseRepository;
+
+  /// Repositorio de novedades disponible para el feed social.
+  static MockNewsRepository get newsRepository => _newsRepository;
 
   /// Repositorio de tienda disponible para la pantalla de Shop.
   static MockShopRepository get shopRepository => _shopRepository;

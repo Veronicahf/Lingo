@@ -163,7 +163,7 @@ class _PersonalStreakTab extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: const MascotAnimationWidget(
-            assetPath: 'assets/lottie/cat_happy.json',
+            assetPath: 'assets/lottie/cat_sleeping.json',
             width: 220,
             height: 220,
           ),
