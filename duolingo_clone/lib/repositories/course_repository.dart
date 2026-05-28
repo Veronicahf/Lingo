@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../core/mock_database.dart';
 import '../models/lesson_node.dart';
 
-// TODO: Consumir API de Spring Boot cuando el backend de cursos este disponible.
+// TODO: Conectar a API Spring Boot real.
 /// Repositorio simulado que entrega el mapa de lecciones desde datos locales.
 ///
 /// Esta implementacion mantiene el Home desacoplado de la fuente real de datos mientras se
@@ -86,5 +87,10 @@ class MockCourseRepository {
         position: Offset(176, 1088),
       ),
     ];
+  }
+
+  /// Obtiene los cursos disponibles desde la base de datos en memoria.
+  Future<List<Course>> getCourses() async {
+    return List<Course>.unmodifiable(MockDatabase.instance.courses);
   }
 }

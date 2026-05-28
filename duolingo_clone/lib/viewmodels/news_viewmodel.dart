@@ -1,7 +1,7 @@
 import '../core/base_viewmodel.dart';
 import '../core/service_locator.dart';
 import '../models/news_article.dart';
-import '../repositories/user_repository.dart';
+import '../repositories/news_repository.dart';
 
 /// ViewModel responsable de cargar y exponer los articulos de novedades.
 ///
@@ -11,15 +11,26 @@ class NewsViewModel extends BaseViewModel {
   /// Crea la ViewModel de novedades con repositorio opcional inyectado.
   ///
   /// Si no se proporciona uno, se usa la instancia registrada en [ServiceLocator].
-  NewsViewModel({MockUserRepository? userRepository})
-      : _userRepository = userRepository ?? ServiceLocator.userRepository;
+  NewsViewModel({MockNewsRepository? newsRepository})
+      : _newsRepository = newsRepository ?? ServiceLocator.newsRepository;
 
-  final MockUserRepository _userRepository;
+  final MockNewsRepository _newsRepository;
 
   List<NewsArticle> _articles = const [];
 
   /// Articulos de novedades disponibles para pintar en la vista.
   List<NewsArticle> get articles => _articles;
+
+  /// Alterna el like de una publicacion y recarga el feed local para notificar cambios.
+  Future<void> toggleLike(String postId) async {
+    try {
+      await _newsRepository.toggleLike(postId);
+      _articles = await _newsRepository.getNewsArticles();
+      notifyListeners();
+    } catch (_) {
+      setError('No se pudo actualizar la novedad.');
+    }
+  }
 
   // TODO: Consumir API de Spring Boot cuando el backend de novedades este disponible.
   /// Carga los articulos de novedades y notifica a la UI una vez listos.
@@ -27,7 +38,7 @@ class NewsViewModel extends BaseViewModel {
     setLoading(true);
 
     try {
-      _articles = await _userRepository.getNewsArticles();
+      _articles = await _newsRepository.getNewsArticles();
       setSuccess();
     } catch (error) {
       setError('No se pudieron cargar las novedades.');

@@ -65,7 +65,10 @@ class _NewsViewState extends State<NewsView> {
               return Column(
                 children: [
                   for (var index = 0; index < articles.length; index++) ...[
-                    _NewsArticleCard(article: articles[index]),
+                    _NewsArticleCard(
+                      article: articles[index],
+                      onToggleLike: () => _viewModel.toggleLike(articles[index].id),
+                    ),
                     if (index != articles.length - 1) ...[
                       const SizedBox(height: 22),
                       const Divider(color: Color(0xFF2B3840), height: 1),
@@ -85,9 +88,10 @@ class _NewsViewState extends State<NewsView> {
 /// Tarjeta de novedad reutilizable construida a partir de [NewsArticle].
 class _NewsArticleCard extends StatelessWidget {
   /// Crea una tarjeta de novedad basada en el modelo.
-  const _NewsArticleCard({required this.article});
+  const _NewsArticleCard({required this.article, required this.onToggleLike});
 
   final NewsArticle article;
+  final VoidCallback onToggleLike;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +103,7 @@ class _NewsArticleCard extends StatelessWidget {
       return _NewsQuoteCard(article: article);
     }
 
-    return _NewsFeedItem(article: article);
+    return _NewsFeedItem(article: article, onToggleLike: onToggleLike);
   }
 }
 
@@ -168,9 +172,10 @@ class _NewsPromoCard extends StatelessWidget {
 /// Elemento de feed intermedio reutilizable en la pantalla de novedades.
 class _NewsFeedItem extends StatelessWidget {
   /// Crea un item del feed a partir del modelo.
-  const _NewsFeedItem({required this.article});
+  const _NewsFeedItem({required this.article, required this.onToggleLike});
 
   final NewsArticle article;
+  final VoidCallback onToggleLike;
 
   @override
   Widget build(BuildContext context) {
@@ -218,15 +223,20 @@ class _NewsFeedItem extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Row(
-                children: const [
+                children: [
                   _SmallActionChip(
-                    icon: Icons.favorite_border_rounded,
-                    label: '0',
+                    icon: article.isLikedByMe ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    label: '${article.likesCount}',
+                    iconColor: article.isLikedByMe ? const Color(0xFFFF4D8D) : Colors.white,
+                    borderColor: article.isLikedByMe ? const Color(0xFFFF4D8D) : const Color(0xFF3A4952),
+                    onTap: onToggleLike,
                   ),
-                  SizedBox(width: 12),
-                  _SmallActionChip(
+                  const SizedBox(width: 12),
+                  const _SmallActionChip(
                     icon: Icons.ios_share_rounded,
                     label: '',
+                    iconColor: Colors.white,
+                    borderColor: Color(0xFF3A4952),
                   ),
                 ],
               ),
@@ -312,32 +322,42 @@ class _SmallActionChip extends StatelessWidget {
   const _SmallActionChip({
     required this.icon,
     required this.label,
+    this.iconColor = Colors.white,
+    this.borderColor = const Color(0xFF3A4952),
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final Color iconColor;
+  final Color borderColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 54,
-      width: label.isEmpty ? 54 : 86,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF3A4952), width: 3),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white, size: 24),
-          if (label.isNotEmpty) ...[
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 54,
+        width: label.isEmpty ? 54 : 92,
+        decoration: BoxDecoration(
+          color: onTap == null ? Colors.transparent : iconColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor, width: 3),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: iconColor, size: 24),
+            if (label.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(color: iconColor, fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

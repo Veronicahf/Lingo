@@ -13,6 +13,8 @@ class NewsArticle {
     required this.buttonText,
     required this.backgroundColor,
     required this.iconData,
+    required this.likesCount,
+    required this.isLikedByMe,
   });
 
   /// Identificador unico del articulo.
@@ -32,4 +34,10 @@ class NewsArticle {
 
   /// Icono asociado al articulo.
   final IconData iconData;
+
+  /// Cantidad de likes o reacciones visibles en el feed.
+  final int likesCount;
+
+  /// Indica si el usuario actual ya reacciono a esta publicacion.
+  final bool isLikedByMe;
 }
