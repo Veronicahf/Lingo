@@ -8,70 +8,13 @@ import '../repositories/user_repository.dart';
 class OnboardingViewModel extends BaseViewModel {
   /// Crea la ViewModel del onboarding con repositorio opcional inyectado.
   OnboardingViewModel({MockUserRepository? userRepository})
-      : _userRepository = userRepository ?? ServiceLocator.userRepository {
-    _questions = const [
-      OnboardingQuestion(
-        title: '¿Qué te gustaría aprender?',
-        animationPath: 'assets/lottie/cat_happy.json',
-        options: ['Inglés', 'Francés', 'Italiano', 'Alemán', 'Portugués'],
-      ),
-      OnboardingQuestion(
-        title: '¿Cómo supiste de Duolingo?',
-        animationPath: 'assets/lottie/Cat_typing.json',
-        options: ['Amigos/familia', 'Búsqueda en Google', 'Facebook/Instagram', 'YouTube', 'Noticias/artículos/blog'],
-      ),
-      OnboardingQuestion(
-        title: '¿Cuánto inglés sabes?',
-        animationPath: 'assets/lottie/cat_idle.json',
-        options: [
-          'Estoy empezando a aprender inglés',
-          'Conozco algunas palabras comunes',
-          'Puedo mantener conversaciones simples',
-          'Puedo conversar sobre varios temas',
-          'Puedo debatir en detalle sobre la mayoría de los temas',
-        ],
-      ),
-      OnboardingQuestion(
-        title: '¿Cuál es tu meta diaria de aprendizaje?',
-        animationPath: 'assets/lottie/cat_sleeping.json',
-        options: ['3 min/día', '10 min/día', '15 min/día', '30 min/día'],
-      ),
-      OnboardingQuestion(
-        title: '¿Cuál es tu objetivo principal?',
-        animationPath: 'assets/lottie/cat_happy.json',
-        options: [
-          'Para divertirme',
-          'Prepararme para viajar',
-          'Ejercitar mi mente',
-          'Impulsar mis estudios',
-          'Impulsar mi carrera profesional',
-          'Conectarme con personas',
-          'Otros',
-        ],
-      ),
-      OnboardingQuestion(
-        title: '¿Qué formato te ayuda más a aprender?',
-        animationPath: 'assets/lottie/Cat_in_a_rocket.json',
-        options: ['Practicar leyendo', 'Practicar escuchando', 'Hablar con confianza', 'Juegos cortos'],
-      ),
-      OnboardingQuestion(
-        title: '¿Cuándo quieres aprender?',
-        animationPath: 'assets/lottie/cat_happy.json',
-        options: ['Mañana', 'Tarde', 'Noche'],
-      ),
-      OnboardingQuestion(
-        title: '¿Listo para comenzar tu primera lección?',
-        animationPath: 'assets/lottie/cat_happy.json',
-        options: ['Sí, empecemos', 'Necesito un poco más'],
-      ),
-    ];
-
-    _answers = List<String?>.filled(_totalSteps, null);
-  }
+      : _userRepository = userRepository ?? ServiceLocator.userRepository,
+        _questions = MockDatabase.instance.onboardingQuestions,
+        _answers = List<List<String>>.generate(_totalSteps, (_) => <String>[]);
 
   final MockUserRepository _userRepository;
   late final List<OnboardingQuestion> _questions;
-  late List<String?> _answers;
+  late List<List<String>> _answers;
   User? _createdUser;
 
   static const int _totalSteps = 8;
@@ -92,7 +35,10 @@ class OnboardingViewModel extends BaseViewModel {
   OnboardingQuestion get currentQuestion => _questions[_currentStep];
 
   /// Respuesta seleccionada para el paso actual, si existe.
-  String? get selectedAnswer => _answers[_currentStep];
+  String? get selectedAnswer => _answers[_currentStep].isEmpty ? null : _answers[_currentStep].first;
+
+  /// Respuestas seleccionadas para el paso actual.
+  List<String> get selectedAnswers => List<String>.unmodifiable(_answers[_currentStep]);
 
   /// Usuario creado al terminar el onboarding, si ya se completó.
   User? get createdUser => _createdUser;
@@ -112,7 +58,20 @@ class OnboardingViewModel extends BaseViewModel {
       return;
     }
 
-    _answers[_currentStep] = option;
+    final currentAnswers = _answers[_currentStep];
+
+    if (currentQuestion.allowMultipleSelection) {
+      if (currentAnswers.contains(option)) {
+        currentAnswers.remove(option);
+      } else {
+        currentAnswers.add(option);
+      }
+
+      notifyListeners();
+      return;
+    }
+
+    _answers[_currentStep] = <String>[option];
 
     if (isLastStep) {
       await _completeOnboarding();
@@ -138,10 +97,24 @@ class OnboardingViewModel extends BaseViewModel {
     }
   }
 
+  /// Continúa al siguiente paso o completa el onboarding si corresponde.
+  Future<void> continueStep() async {
+    if (isLoading) {
+      return;
+    }
+
+    if (isLastStep) {
+      await _completeOnboarding();
+      return;
+    }
+
+    nextStep();
+  }
+
   /// Reinicia el onboarding al primer paso y limpia las respuestas.
   void reset() {
     _currentStep = 0;
-    _answers = List<String?>.filled(_totalSteps, null);
+    _answers = List<List<String>>.generate(_totalSteps, (_) => <String>[]);
     _createdUser = null;
     resetState();
   }
@@ -154,7 +127,7 @@ class OnboardingViewModel extends BaseViewModel {
       _createdUser = await _userRepository.registerNewUser(
         onboardingAnswers: List<String>.generate(
           _totalSteps,
-          (index) => _answers[index] ?? '',
+          (index) => _answers[index].join(', '),
           growable: false,
         ),
       );
@@ -165,5 +138,5 @@ class OnboardingViewModel extends BaseViewModel {
   }
 
   /// Respuesta actual del paso visible.
-  String get currentAnswer => _answers[_currentStep] ?? '';
+  String get currentAnswer => selectedAnswer ?? '';
 }

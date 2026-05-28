@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/under_construction_command.dart';
+
 class SoundsScreen extends StatelessWidget {
   const SoundsScreen({super.key});
 
@@ -66,28 +68,31 @@ class SoundsScreen extends StatelessWidget {
                     style: TextStyle(color: Colors.white, fontSize: 16, height: 1.35),
                   ),
                   const SizedBox(height: 18),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6CC8F5),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.14),
-                          offset: const Offset(0, 8),
-                          blurRadius: 0,
+                  GestureDetector(
+                    onTap: () => const UnderConstructionCommand().execute(context),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6CC8F5),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.14),
+                            offset: const Offset(0, 8),
+                            blurRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        'EMPEZAR LECCIÓN',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF0F1B22),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
                         ),
-                      ],
-                    ),
-                    child: const Text(
-                      'EMPEZAR LECCIÓN',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF0F1B22),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0,
                       ),
                     ),
                   ),
@@ -165,30 +170,33 @@ class _SoundCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A272F),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF36444D), width: 2),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(item.phonetic, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
-          Text(item.example, style: const TextStyle(color: Color(0xFF8F9DA7), fontSize: 14)),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 8,
-              value: 0.45,
-              backgroundColor: const Color(0xFF37444E),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6CC8F5)),
+    return GestureDetector(
+      onTap: () => const UnderConstructionCommand().execute(context),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A272F),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF36444D), width: 2),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(item.phonetic, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(item.example, style: const TextStyle(color: Color(0xFF8F9DA7), fontSize: 14)),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 8,
+                value: 0.45,
+                backgroundColor: const Color(0xFF37444E),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6CC8F5)),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

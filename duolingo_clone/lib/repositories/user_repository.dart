@@ -46,11 +46,16 @@ class MockUserRepository {
 
   /// Verifica credenciales contra la base en memoria y activa la sesion si coinciden.
   Future<User?> authenticate(String email, String password) async {
+    print('Intentando login con: $email, $password');
+
     final normalizedEmail = email.trim().toLowerCase();
-    final hashedPassword = _hashPassword(password);
+    final normalizedPassword = password.trim();
 
     for (final user in MockDatabase.instance.users) {
-      if (user.email.toLowerCase() == normalizedEmail && user.passwordHash == hashedPassword) {
+      final bool emailMatches = user.email.trim().toLowerCase() == normalizedEmail;
+      final bool passwordMatches = user.passwordHash == normalizedPassword;
+
+      if (emailMatches && passwordMatches) {
         MockDatabase.instance.setActiveUser(user.id);
         return user;
       }
@@ -70,6 +75,7 @@ class MockUserRepository {
     if (currentUser == null) {
       return const UserProfile(
         username: 'Invitado',
+        avatarUrl: '',
         streakDays: 0,
         gems: 0,
         hearts: 0,
@@ -80,6 +86,7 @@ class MockUserRepository {
 
     return UserProfile(
       username: currentUser.name,
+      avatarUrl: currentUser.avatarUrl,
       streakDays: currentUser.streakDays,
       gems: currentUser.gems,
       hearts: currentUser.hearts,
@@ -167,31 +174,7 @@ class MockUserRepository {
   // TODO: Refactorizar para consumir la API REST (Java Spring Boot) usando HTTP.
   /// Obtiene la lista de opciones del menu "Más" desde datos falsos.
   Future<List<MoreOption>> getMoreOptions() async {
-    final courses = MockDatabase.instance.courses;
-    final options = courses
-        .map(
-          (course) => MoreOption(
-            id: course.id,
-            title: course.name,
-            subtitle: course.description,
-            icon: _iconForCourse(course.id),
-            accentColor: _accentColorForCourse(course.id),
-            iconBackground: _iconBackgroundForCourse(course.id),
-          ),
-        )
-        .toList(growable: false);
-
-    return [
-      ...options,
-      MoreOption(
-        id: 'community_feed',
-        title: 'Comunidad',
-        subtitle: '${MockDatabase.instance.newsFeed.length} publicaciones en tu feed',
-        icon: Icons.forum_rounded,
-        accentColor: const Color(0xFF52BDF7),
-        iconBackground: const Color(0xFF1F86C1),
-      ),
-    ];
+    return MockDatabase.instance.moreOptions;
   }
 
   int _calculateTotalXp(User user) {
@@ -202,39 +185,6 @@ class MockUserRepository {
   int _calculateRankingXp(User user) {
     final int heartsBonus = user.hearts == -1 ? 100 : user.hearts * 30;
     return user.streakDays * 40 + user.gems ~/ 8 + heartsBonus;
-  }
-
-  IconData _iconForCourse(String courseId) {
-    switch (courseId) {
-      case 'course_fr':
-        return Icons.language_rounded;
-      case 'course_it':
-        return Icons.restaurant_rounded;
-      default:
-        return Icons.school_rounded;
-    }
-  }
-
-  Color _accentColorForCourse(String courseId) {
-    switch (courseId) {
-      case 'course_fr':
-        return const Color(0xFFB87CFF);
-      case 'course_it':
-        return const Color(0xFFFFC24A);
-      default:
-        return const Color(0xFF52BDF7);
-    }
-  }
-
-  Color _iconBackgroundForCourse(String courseId) {
-    switch (courseId) {
-      case 'course_fr':
-        return const Color(0xFF6730A8);
-      case 'course_it':
-        return const Color(0xFFDA8A00);
-      default:
-        return const Color(0xFF1F86C1);
-    }
   }
 
   String _hashPassword(String password) {

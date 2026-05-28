@@ -39,8 +39,12 @@ class _MoreViewState extends State<MoreView> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.transparent,
+      decoration: const BoxDecoration(
+        color: Color(0xFF101820),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       child: ListView(
+        shrinkWrap: true,
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
         children: [

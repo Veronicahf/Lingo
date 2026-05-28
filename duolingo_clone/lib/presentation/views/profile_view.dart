@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/under_construction_command.dart';
 import '../../models/user_profile.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 
@@ -48,7 +49,7 @@ class _ProfileViewState extends State<ProfileView> {
             children: [
               _ProfileHeader(username: profile?.username ?? 'Perfil'),
               const SizedBox(height: 18),
-              const _ProfileHeroAvatar(),
+              _ProfileHeroAvatar(avatarUrl: profile?.avatarUrl ?? ''),
               const SizedBox(height: 18),
               _ProfileHandleRow(
                 handle: profile == null
@@ -95,11 +96,17 @@ class _ProfileHeader extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
-        const Row(
+        Row(
           children: [
-            Icon(Icons.ios_share_rounded, color: Color(0xFF9AA7B1), size: 30),
-            SizedBox(width: 18),
-            Icon(Icons.settings_rounded, color: Color(0xFF9AA7B1), size: 30),
+            GestureDetector(
+              onTap: () => const UnderConstructionCommand().execute(context),
+              child: const Icon(Icons.ios_share_rounded, color: Color(0xFF9AA7B1), size: 30),
+            ),
+            const SizedBox(width: 18),
+            GestureDetector(
+              onTap: () => const UnderConstructionCommand().execute(context),
+              child: const Icon(Icons.settings_rounded, color: Color(0xFF9AA7B1), size: 30),
+            ),
           ],
         ),
       ],
@@ -110,10 +117,14 @@ class _ProfileHeader extends StatelessWidget {
 /// Tarjeta decorativa que representa la fotografía o avatar principal del perfil.
 class _ProfileHeroAvatar extends StatelessWidget {
   /// Crea el bloque visual del avatar.
-  const _ProfileHeroAvatar();
+  const _ProfileHeroAvatar({required this.avatarUrl});
+
+  final String avatarUrl;
 
   @override
   Widget build(BuildContext context) {
+    final String normalizedAvatarUrl = avatarUrl.trim();
+
     return Container(
       height: 240,
       alignment: Alignment.center,
@@ -121,11 +132,23 @@ class _ProfileHeroAvatar extends StatelessWidget {
         color: const Color(0xFFD5D5D5),
         borderRadius: BorderRadius.circular(24),
       ),
-      child: const Icon(
-        Icons.person_rounded,
-        size: 170,
-        color: Color(0xFF3C3C3C),
-      ),
+      child: normalizedAvatarUrl.isEmpty
+          ? const Icon(
+              Icons.person_rounded,
+              size: 170,
+              color: Color(0xFF3C3C3C),
+            )
+          : CircleAvatar(
+              radius: 82,
+              backgroundColor: const Color(0xFFE9E9E9),
+              backgroundImage: NetworkImage(normalizedAvatarUrl),
+              onBackgroundImageError: (_, __) {},
+              child: const Icon(
+                Icons.person_rounded,
+                size: 170,
+                color: Color(0xFF3C3C3C),
+              ),
+            ),
     );
   }
 }
@@ -232,21 +255,24 @@ class _ProfileActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFF3A4952), width: 3),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 24),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.7,
+      child: GestureDetector(
+        onTap: () => const UnderConstructionCommand().execute(context),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 24),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.7,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -285,14 +311,17 @@ class _ProfilePromoCard extends StatelessWidget {
               color: const Color(0xFF5DBDF4),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Text(
-              'AGRÉGALO AHORA',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF0D2736),
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.6,
+            child: GestureDetector(
+              onTap: () => const UnderConstructionCommand().execute(context),
+              child: const Text(
+                'AGRÉGALO AHORA',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF0D2736),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.6,
+                ),
               ),
             ),
           ),
