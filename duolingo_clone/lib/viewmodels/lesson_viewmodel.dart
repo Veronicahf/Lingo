@@ -58,6 +58,24 @@ class LessonViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  /// Carga actividades filtradas para las practicas (Hablar o Escuchar).
+  ///
+  /// Filtra las actividades mock por tipo y reinicia el estado de juego.
+  /// Para Hablar: carga solo actividades de tipo [ActivityType.repeat]
+  /// Para Escuchar: carga solo actividades de tipo [ActivityType.listenSelect]
+  void loadPracticeLesson(ActivityType type) {
+    resetState();
+    final List<LessonActivity> allActivities = MockDatabase.instance.lessonActivities;
+    _activities = List<LessonActivity>.unmodifiable(
+      allActivities.where((activity) => activity.type == type).toList(),
+    );
+    _currentIndex = 0;
+    _isChecking = false;
+    _isCorrect = false;
+    _selectedAnswer = '';
+    notifyListeners();
+  }
+
   /// Guarda la respuesta seleccionada por el usuario para la actividad actual.
   void setSelectedAnswer(String answer) {
     _selectedAnswer = answer;
