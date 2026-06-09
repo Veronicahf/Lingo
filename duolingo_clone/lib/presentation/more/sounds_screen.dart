@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/audio_service.dart';
 import '../../core/under_construction_command.dart';
 
 class SoundsScreen extends StatelessWidget {
@@ -171,7 +172,7 @@ class _SoundCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => const UnderConstructionCommand().execute(context),
+      onTap: () => AudioService.instance.speak(item.example),
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         decoration: BoxDecoration(

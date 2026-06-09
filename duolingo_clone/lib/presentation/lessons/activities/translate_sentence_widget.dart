@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/audio_service.dart';
+import '../../widgets/mascot_animation_widget.dart';
 
 /// Widget que permite traducir una oracion ordenando bloques de palabras.
 ///
@@ -9,10 +10,18 @@ import '../../../core/audio_service.dart';
 /// aparece el banco de palabras, y tocar un bloque lo mueve entre el banco y la respuesta.
 class TranslateSentenceWidget extends StatefulWidget {
   /// Crea el widget de traduccion de oracion con su payload de datos.
-  const TranslateSentenceWidget({super.key, required this.payload, this.onAnswerSelected});
+  const TranslateSentenceWidget({
+    super.key,
+    required this.payload,
+    required this.mascotEmotion,
+    this.onAnswerSelected,
+  });
 
   /// Datos de la actividad, normalmente con la oracion objetivo y el banco de palabras.
   final Map<String, dynamic> payload;
+
+  /// Emoción de la mascota asociada a esta actividad.
+  final String mascotEmotion;
 
   /// Callback que reporta la respuesta construida por el usuario.
   final ValueChanged<String>? onAnswerSelected;
@@ -42,6 +51,12 @@ class _TranslateSentenceWidgetState extends State<TranslateSentenceWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          MascotAnimationWidget.fromEmotion(
+            emotion: widget.mascotEmotion,
+            width: 128,
+            height: 128,
+          ),
+          const SizedBox(height: 8),
           _SentenceBubble(sentence: promptSentence),
           const SizedBox(height: 22),
           Expanded(

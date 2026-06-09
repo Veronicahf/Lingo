@@ -74,7 +74,6 @@ class OnboardingViewModel extends BaseViewModel {
     _answers[_currentStep] = <String>[option];
 
     if (isLastStep) {
-      await _completeOnboarding();
       return;
     }
 
@@ -104,7 +103,7 @@ class OnboardingViewModel extends BaseViewModel {
     }
 
     if (isLastStep) {
-      await _completeOnboarding();
+      await finishOnboarding();
       return;
     }
 
@@ -119,21 +118,55 @@ class OnboardingViewModel extends BaseViewModel {
     resetState();
   }
 
-  /// Completa el onboarding creando el usuario en la base en memoria.
-  Future<void> _completeOnboarding() async {
+  /// Completa el onboarding creando y registrando el usuario en la base en memoria.
+  Future<void> finishOnboarding() async {
+    if (isLoading) {
+      return;
+    }
+
     setLoading(true);
 
     try {
-      _createdUser = await _userRepository.registerNewUser(
-        onboardingAnswers: List<String>.generate(
-          _totalSteps,
-          (index) => _answers[index].join(', '),
-          growable: false,
-        ),
+      final String courseId = _resolveCourseId(_answers.first.isEmpty ? '' : _answers.first.first);
+      final User newUser = User(
+        id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+        email: '$courseId.onboarding@lingo.local',
+        passwordHash: 'onboarding',
+        name: _buildUserName(courseId),
+        avatarUrl: 'https://placehold.co/256x256/png?text=New',
+        streakDays: 0,
+        gems: 500,
+        totalXp: 0,
+        hearts: 5,
+        currentCourseId: courseId,
       );
+
+      _createdUser = await _userRepository.registerUser(newUser);
       setSuccess();
     } catch (_) {
       setError('No se pudo completar el onboarding. Inténtalo de nuevo.');
+    }
+  }
+
+  String _resolveCourseId(String selectedOption) {
+    switch (selectedOption.trim().toLowerCase()) {
+      case 'francés':
+        return 'course_fr';
+      case 'italiano':
+        return 'course_it';
+      default:
+        return 'course_en';
+    }
+  }
+
+  String _buildUserName(String courseId) {
+    switch (courseId) {
+      case 'course_fr':
+        return 'Aprendiz de Francés';
+      case 'course_it':
+        return 'Aprendiz de Italiano';
+      default:
+        return 'Aprendiz de Inglés';
     }
   }
 

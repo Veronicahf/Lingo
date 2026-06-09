@@ -22,8 +22,8 @@ class AudioService {
   }
 
   /// Reproduce el texto recibido usando síntesis de voz.
-  Future<void> speak(String text) async {
-    final String normalizedText = text.trim();
+  Future<void> speak(dynamic input) async {
+    final String normalizedText = _resolveText(input).trim();
     if (normalizedText.isEmpty) {
       return;
     }
@@ -31,5 +31,20 @@ class AudioService {
     await _flutterTts.stop();
     await _flutterTts.setLanguage('en-US');
     await _flutterTts.speak(normalizedText);
+  }
+
+  String _resolveText(dynamic input) {
+    if (input is String) {
+      return input;
+    }
+
+    if (input is Map) {
+      final dynamic candidate = input['sentence'] ?? input['audioText'] ?? input['subtitle'] ?? input['title'];
+      if (candidate is String && candidate.trim().isNotEmpty) {
+        return candidate;
+      }
+    }
+
+    return input?.toString() ?? '';
   }
 }

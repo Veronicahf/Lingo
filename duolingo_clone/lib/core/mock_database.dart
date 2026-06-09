@@ -15,6 +15,7 @@ class User {
     required this.avatarUrl,
     required this.streakDays,
     required this.gems,
+    required this.totalXp,
     required this.hearts,
     required this.currentCourseId,
   });
@@ -39,6 +40,9 @@ class User {
 
   /// Gemas acumuladas por el usuario.
   final int gems;
+
+  /// Experiencia total acumulada por el usuario.
+  final int totalXp;
 
   /// Corazones disponibles; -1 representa energia infinita.
   final int hearts;
@@ -66,6 +70,7 @@ class User {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       streakDays: streakDays ?? this.streakDays,
       gems: gems ?? this.gems,
+      totalXp: totalXp ?? this.totalXp,
       hearts: hearts ?? this.hearts,
       currentCourseId: currentCourseId ?? this.currentCourseId,
     );
@@ -156,6 +161,7 @@ class MockDatabase {
       avatarUrl: 'https://placehold.co/256x256/png?text=Lingo',
       streakDays: 42,
       gems: 1280,
+      totalXp: 6180,
       hearts: -1,
       currentCourseId: 'course_en',
     ),
@@ -167,6 +173,7 @@ class MockDatabase {
       avatarUrl: 'https://placehold.co/256x256/png?text=Marie',
       streakDays: 28,
       gems: 860,
+      totalXp: 4190,
       hearts: 5,
       currentCourseId: 'course_fr',
     ),
@@ -178,6 +185,7 @@ class MockDatabase {
       avatarUrl: 'https://placehold.co/256x256/png?text=Diego',
       streakDays: 19,
       gems: 640,
+      totalXp: 2840,
       hearts: 3,
       currentCourseId: 'course_en',
     ),
@@ -189,6 +197,7 @@ class MockDatabase {
       avatarUrl: 'https://placehold.co/256x256/png?text=Adsoft',
       streakDays: 15,
       gems: 500,
+      totalXp: 2450,
       hearts: 5,
       currentCourseId: 'course_en',
     ),
@@ -334,6 +343,7 @@ class MockDatabase {
       },
       correctAnswer: 'El gato',
       aiExplanation: 'La forma correcta es "El gato" porque "the cat" se traduce literalmente como "el gato". El artículo "the" indica que es un sustantivo específico.',
+      mascotEmotion: 'happy',
     ),
     const LessonActivity(
       id: 'lesson_activity_02',
@@ -346,6 +356,7 @@ class MockDatabase {
       },
       correctAnswer: 'all_matched',
       aiExplanation: 'Emparejar por significado ayuda a no confundir términos cercanos. Una buena estrategia es buscar primero el equivalente más obvio y luego validar los pares restantes.',
+      mascotEmotion: 'typing',
     ),
     const LessonActivity(
       id: 'lesson_activity_03',
@@ -357,6 +368,39 @@ class MockDatabase {
       },
       correctAnswer: 'I study English every day.',
       aiExplanation: 'La traducción correcta mantiene el sujeto, el verbo en presente y el complemento al final. En inglés, la estructura suele ser sujeto + verbo + objeto o complemento.',
+      mascotEmotion: 'typing',
+    ),
+    const LessonActivity(
+      id: 'lesson_activity_04',
+      type: ActivityType.repeat,
+      prompt: 'Repite la frase en voz alta.',
+      payload: <String, dynamic>{
+        'title': 'Practica la pronunciación',
+        'sentence': 'We drink water every day.',
+        'audioText': 'We drink water every day.',
+      },
+      correctAnswer: 'repeat_completed',
+      aiExplanation: 'Escuchar y repetir ayuda a fijar ritmo, acentuación y memoria auditiva.',
+      mascotEmotion: 'speaking',
+    ),
+    const LessonActivity(
+      id: 'lesson_activity_05',
+      type: ActivityType.listenSelect,
+      prompt: 'Escucha y selecciona la traducción correcta.',
+      payload: <String, dynamic>{
+        'title': 'Escucha la frase y elige la opción correcta',
+        'subtitle': 'She drinks water.',
+        'audioText': 'She drinks water.',
+        'options': <String>[
+          'Ella bebe agua',
+          'Él bebe agua',
+          'Ella come pan',
+          'Nosotros bebemos agua',
+        ],
+      },
+      correctAnswer: 'Ella bebe agua',
+      aiExplanation: 'La frase usa tercera persona singular en presente simple, por eso la traducción correcta es "Ella bebe agua".',
+      mascotEmotion: 'idle',
     ),
   ];
 
