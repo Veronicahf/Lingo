@@ -62,4 +62,35 @@ class LessonActivity {
 
   /// Categoria opcional para filtrar actividades en el centro de practica.
   final String? category;
+
+  /// Construye una [LessonActivity] desde un mapa JSON devuelto por la API.
+  factory LessonActivity.fromJson(Map<String, dynamic> json) {
+    return LessonActivity(
+      id: json['id'] as String,
+      type: ActivityType.values.firstWhere(
+        (t) => t.name == json['type'],
+        orElse: () => ActivityType.selectTranslation,
+      ),
+      prompt: json['prompt'] as String,
+      payload: json['payload'],
+      correctAnswer: json['correctAnswer'] as String,
+      aiExplanation: json['aiExplanation'] as String?,
+      mascotEmotion: (json['mascotEmotion'] as String?) ?? 'idle',
+      category: json['category'] as String?,
+    );
+  }
+
+  /// Serializa esta actividad a un mapa JSON.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type.name,
+      'prompt': prompt,
+      'payload': payload,
+      'correctAnswer': correctAnswer,
+      'aiExplanation': aiExplanation,
+      'mascotEmotion': mascotEmotion,
+      'category': category,
+    };
+  }
 }

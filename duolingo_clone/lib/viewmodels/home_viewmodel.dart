@@ -1,3 +1,8 @@
+import 'dart:ui';
+
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+
+import '../core/api_client.dart';
 import '../core/base_viewmodel.dart';
 import '../core/service_locator.dart';
 import '../models/lesson_node.dart';
@@ -5,17 +10,14 @@ import '../models/user_profile.dart';
 import '../repositories/course_repository.dart';
 import '../repositories/user_repository.dart';
 
-/// ViewModel responsable de cargar y exponer el mapa de lecciones del Home.
-///
-/// Esta clase encapsula la obtencion de nodos de leccion, mantiene el estado de carga y
-/// notifica a la vista cuando la lista cambia para que el mapa se pinte desde datos.
 class HomeViewModel extends BaseViewModel {
-  /// Crea la ViewModel del Home con repositorio opcional inyectado.
-  ///
-  /// Si no se proporciona uno, se usa la instancia registrada en [ServiceLocator].
-  HomeViewModel({MockCourseRepository? courseRepository, MockUserRepository? userRepository})
-      : _courseRepository = courseRepository ?? ServiceLocator.courseRepository,
-        _userRepository = userRepository ?? ServiceLocator.userRepository;
+  HomeViewModel(
+      {MockCourseRepository? courseRepository,
+      MockUserRepository? userRepository})
+      : _courseRepository =
+            courseRepository ?? ServiceLocator.courseRepository,
+        _userRepository =
+            userRepository ?? ServiceLocator.userRepository;
 
   final MockCourseRepository _courseRepository;
   final MockUserRepository _userRepository;
@@ -23,75 +25,119 @@ class HomeViewModel extends BaseViewModel {
   List<LessonNode> _lessonNodes = const [];
   UserProfile? _profile;
 
-  /// Lista de nodos que representa el mapa de lecciones.
   List<LessonNode> get lessonNodes => _lessonNodes;
-
-  /// Perfil mock que alimenta la top bar y los modales del Home.
   UserProfile? get profile => _profile;
 
-  /// Título dinámico de la sección actual del mapa.
-  String get currentSectionTitle => 'Sección ${_currentSectionNumber}';
+  String get currentSectionTitle => 'Sección $_currentSectionNumber';
 
-  /// Título dinámico de la etapa actual según el progreso.
   String get currentStageTitle {
-    final LessonNode? currentLesson = _currentLessonNode;
-    final String stageName = currentLesson?.title ?? 'Primeros pasos';
-    return 'Etapa ${_currentSectionNumber}: $stageName';
+    final currentLesson = _currentLessonNode;
+    final stageName = currentLesson?.title ?? 'Primeros pasos';
+    return 'Etapa $_currentSectionNumber: $stageName';
   }
 
-  /// Nombre del curso actual mostrado en el modal de cursos.
-  String get currentCourseName => _profile?.leagueName ?? 'Curso de inglés';
+  String get currentCourseName =>
+      _profile?.leagueName ?? 'Curso de inglés';
 
-  /// Puntaje actual mostrado en la tarjeta de cursos.
-  String get currentCourseScore => _profile == null ? '...' : '${_profile!.totalXp} EXP';
+  String get currentCourseScore =>
+      _profile == null ? '...' : '${_profile!.totalXp} EXP';
 
-  /// Valor mostrado para el indicador de racha del Home.
-  String get streakDaysText => _profile == null ? '...' : '${_profile!.streakDays}';
+  String get streakDaysText =>
+      _profile == null ? '...' : '${_profile!.streakDays}';
 
-  /// Valor mostrado para el indicador de gemas del Home.
   String get gemsText => _profile == null ? '...' : '${_profile!.gems}';
 
-  /// Texto mostrado para el estado de energía del Home.
   String get heartsValueText => _profile == null ? '...' : '∞';
-
-  /// Título del modal de energía.
   String get energyDialogTitle => 'Energía ilimitada';
-
-  /// Subtítulo de apoyo para el modal de energía.
-  String get energyDialogSubtitle => 'Sigue aprendiendo sin interrupciones.';
-
-  /// Etiqueta del botón para agregar más cursos.
+  String get energyDialogSubtitle =>
+      'Sigue aprendiendo sin interrupciones.';
   String get coursesButtonLabel => 'Cursos';
-
-  /// Etiqueta del botón principal del modal de energía.
   String get energyButtonLabel => 'Continuar';
 
-  // TODO: Consumir API de Spring Boot cuando el backend del mapa este disponible.
-  /// Carga el mapa de lecciones y notifica a la vista una vez disponible.
+  bool _isLoggedIn() {
+    try {
+      return fb.FirebaseAuth.instance.currentUser != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> loadLessonNodes() async {
     setLoading(true);
 
-    try {
-      final List<LessonNode> rawNodes = await _courseRepository.getLessonNodes();
-      _lessonNodes = _applyStrictProgression(rawNodes);
+    if (!_isLoggedIn()) {
+      refreshDemoNodes();
       setSuccess();
-    } catch (error) {
+      return;
+    }
+
+    try {
+      final response =
+          await ApiClient.instance.get('/api/v1/lessons/map');
+      final data = response.data;
+      final List<LessonNode> remoteNodes;
+
+      if (data is List) {
+        remoteNodes = data
+            .map((e) => LessonNode.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else {
+        remoteNodes = await _courseRepository.getLessonNodes();
+      }
+
+      _lessonNodes = _applyStrictProgression(remoteNodes);
+      setSuccess();
+    } catch (_) {
       setError('No se pudo cargar el mapa de lecciones.');
     }
   }
 
-  /// Aplica la maquina de estados estricta del mapa:
-  ///
-  /// 1. Busca el primer nodo que NO este completado.
-  /// 2. Ese nodo pasa a ser [NodeStatus.active].
-  /// 3. Todos los nodos anteriores pasan a [NodeStatus.completed].
-  /// 4. Todos los nodos posteriores pasan a [NodeStatus.locked].
+  void refreshDemoNodes() {
+    _lessonNodes = _buildDemoNodes(ServiceLocator.completedLessonsCount);
+    notifyListeners();
+  }
+
+  List<LessonNode> _buildDemoNodes(int completed) {
+    return <LessonNode>[
+      LessonNode(
+        id: 'demo_1',
+        title: 'Primeros pasos',
+        type: LessonNodeType.star,
+        status: completed >= 1
+            ? NodeStatus.completed
+            : NodeStatus.active,
+        position: const Offset(0, 0),
+        activities: const [],
+      ),
+      LessonNode(
+        id: 'demo_2',
+        title: 'Palabras básicas',
+        type: LessonNodeType.star,
+        status: completed >= 2
+            ? NodeStatus.completed
+            : completed >= 1
+                ? NodeStatus.active
+                : NodeStatus.locked,
+        position: const Offset(0, 1),
+        activities: const [],
+      ),
+      LessonNode(
+        id: 'demo_3',
+        title: 'Siguiente lección',
+        type: LessonNodeType.book,
+        status: NodeStatus.locked,
+        position: const Offset(0, 2),
+        activities: const [],
+      ),
+    ];
+  }
+
   List<LessonNode> _applyStrictProgression(List<LessonNode> nodes) {
     if (nodes.isEmpty) return nodes;
 
-    final int firstUncompletedIndex = nodes.indexWhere((n) => n.status != NodeStatus.completed);
+    final firstUncompletedIndex =
+        nodes.indexWhere((n) => n.status != NodeStatus.completed);
 
-    // Si todos estan completados, mantener el estado actual
     if (firstUncompletedIndex == -1) return nodes;
 
     return List<LessonNode>.generate(nodes.length, (index) {
@@ -115,32 +161,27 @@ class HomeViewModel extends BaseViewModel {
     });
   }
 
-  // TODO: Consumir API de Spring Boot cuando el backend de perfil este disponible.
-  /// Carga el perfil del usuario que alimenta la top bar del Home.
   Future<void> loadProfile() async {
     setLoading(true);
-
     try {
       _profile = await _userRepository.getUserProfile();
       setSuccess();
-    } catch (error) {
+    } catch (_) {
       setError('No se pudo cargar el perfil del Home.');
     }
   }
 
   LessonNode? get _currentLessonNode {
-    if (_lessonNodes.isEmpty) {
-      return null;
-    }
+    if (_lessonNodes.isEmpty) return null;
 
-    final int activeIndex = _lessonNodes.indexWhere((node) => node.status == NodeStatus.active);
-    if (activeIndex != -1) {
-      return _lessonNodes[activeIndex];
-    }
+    final activeIndex =
+        _lessonNodes.indexWhere((n) => n.status == NodeStatus.active);
+    if (activeIndex != -1) return _lessonNodes[activeIndex];
 
-    final int lastCompletedIndex =
-        _lessonNodes.lastIndexWhere((node) => node.status == NodeStatus.completed);
-    if (lastCompletedIndex != -1 && lastCompletedIndex + 1 < _lessonNodes.length) {
+    final lastCompletedIndex = _lessonNodes
+        .lastIndexWhere((n) => n.status == NodeStatus.completed);
+    if (lastCompletedIndex != -1 &&
+        lastCompletedIndex + 1 < _lessonNodes.length) {
       return _lessonNodes[lastCompletedIndex + 1];
     }
 
@@ -148,15 +189,10 @@ class HomeViewModel extends BaseViewModel {
   }
 
   int get _currentSectionNumber {
-    if (_lessonNodes.isEmpty) {
-      return 1;
-    }
-
-    final int currentIndex = _lessonNodes.indexOf(_currentLessonNode ?? _lessonNodes.first);
-    if (currentIndex < 0) {
-      return 1;
-    }
-
+    if (_lessonNodes.isEmpty) return 1;
+    final currentIndex =
+        _lessonNodes.indexOf(_currentLessonNode ?? _lessonNodes.first);
+    if (currentIndex < 0) return 1;
     return (currentIndex ~/ 3) + 1;
   }
 }

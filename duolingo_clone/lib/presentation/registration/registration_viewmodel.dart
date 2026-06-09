@@ -1,24 +1,11 @@
-import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 
-import 'package:crypto/crypto.dart';
-
+import '../../core/api_client.dart';
+import '../../core/auth_service.dart';
 import '../../core/base_viewmodel.dart';
-import '../../core/mock_database.dart';
 import '../../core/service_locator.dart';
-import '../../models/dtos/user_dto.dart';
-import '../../repositories/user_repository.dart';
 
-/// ViewModel que gestiona el flujo de registro obligatorio (Nombre, Correo, Password).
-///
-/// Se activa al completar la lección 2 o al intentar acceder a Ranking/Perfil
-/// sin haber finalizado el registro. Al completarse, persiste el [User] completo
-/// en MockDatabase y activa la sesión.
 class RegistrationViewModel extends BaseViewModel {
-  RegistrationViewModel({MockUserRepository? userRepository})
-      : _userRepository = userRepository ?? ServiceLocator.userRepository;
-
-  final MockUserRepository _userRepository;
-
   String _name = '';
   String _email = '';
   String _password = '';
@@ -27,28 +14,19 @@ class RegistrationViewModel extends BaseViewModel {
   String? _emailError;
   String? _passwordError;
 
-  /// Nombre ingresado por el usuario.
   String get name => _name;
-
-  /// Correo ingresado por el usuario.
   String get email => _email;
-
-  /// Contraseña ingresada por el usuario.
   String get password => _password;
-
-  /// Confirmación de contraseña.
   String get confirmPassword => _confirmPassword;
-
-  /// Error de validación del nombre, si existe.
   String? get nameError => _nameError;
-
-  /// Error de validación del correo, si existe.
   String? get emailError => _emailError;
-
-  /// Error de validación de la contraseña, si existe.
   String? get passwordError => _passwordError;
 
-  /// Indica si el formulario es válido para enviar.
+  static bool isRegistrationRequired() {
+    return ServiceLocator.completedLessonsCount >= 2 &&
+        !ServiceLocator.isRegistered;
+  }
+
   bool get isValid =>
       _name.trim().isNotEmpty &&
       _email.trim().isNotEmpty &&
@@ -66,7 +44,8 @@ class RegistrationViewModel extends BaseViewModel {
 
   void setEmail(String value) {
     _email = value;
-    final bool isValidEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value.trim());
+    final bool isValidEmail =
+        RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value.trim());
     _emailError = value.trim().isEmpty
         ? 'El correo es obligatorio'
         : !isValidEmail
@@ -89,64 +68,133 @@ class RegistrationViewModel extends BaseViewModel {
     _confirmPassword = value;
     if (value.isNotEmpty && value != _password) {
       _passwordError = 'Las contraseñas no coinciden';
-    } else if (_password.trim().isNotEmpty && _password.trim().length >= 6) {
+    } else if (_password.trim().isNotEmpty &&
+        _password.trim().length >= 6) {
       _passwordError = null;
     }
     notifyListeners();
   }
 
-  /// Completa el registro creando el usuario, activando la sesión y
-  /// persistiendo el progreso inicial en MockDatabase.
-  Future<User?> submitRegistration() async {
-    if (!isValid || isLoading) return null;
+  Future<bool> submitRegistration() async {
+    if (!isValid || isLoading) return false;
 
     setLoading(true);
+    print('🟡 REGISTRO: Iniciando submitRegistration()');
+    notifyListeners();
 
     try {
-      final String courseId = 'course_en';
-      final String userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
+      final fb.User? firebaseUser = fb.FirebaseAuth.instance.currentUser;
 
-      final User newUser = User(
-        id: userId,
-        email: _email.trim().toLowerCase(),
-        passwordHash: md5.convert(utf8.encode(_password.trim())).toString(),
-        name: _name.trim(),
-        avatarUrl: 'https://placehold.co/256x256/png?text=${Uri.encodeComponent(_name.trim())}',
-        streakDays: 0,
-        gems: 50,
-        totalXp: 0,
-        hearts: 5,
-        currentCourseId: courseId,
-      );
+      if (firebaseUser == null) {
+        print('🟡 REGISTRO: No hay sesión Firebase, creando usuario...');
+        final credential =
+            await fb.FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _email.trim().toLowerCase(),
+          password: _password.trim(),
+        );
+        await credential.user?.updateDisplayName(_name.trim());
+        print('✅ REGISTRO: Usuario Firebase creado: ${credential.user?.uid}');
+      } else {
+        print('🟡 REGISTRO: Ya hay sesión Firebase: ${firebaseUser.uid}');
+      }
 
-      final User registeredUser = await _userRepository.registerUser(newUser);
+      final List<String> safeAnswers = ServiceLocator.onboardingAnswers ??
+          <String>['Inglés', 'Amigos/familia', 'Estoy empezando', '10 min/día',
+              'Para divertirme', 'Practicar leyendo', 'Mañana', 'Sí, empecemos'];
 
-      // Persiste progreso inicial a través del DTO
-      final UserDTO initialProgress = UserDTO(
-        userId: registeredUser.id,
-        name: registeredUser.name,
-        email: registeredUser.email,
-        password: _password.trim(),
-        streakDays: 0,
-        totalXp: 0,
-        level: 1,
-        hearts: 5,
-        gems: 50,
-        currentCourseId: courseId,
-        avatarUrl: registeredUser.avatarUrl,
-      );
-      await _userRepository.saveUserProgress(initialProgress);
+      print('🟡 REGISTRO: Enviando sync a API...');
+      print('🟡 REGISTRO: Body -> uid=${fb.FirebaseAuth.instance.currentUser?.uid}, '
+          'email=$_email, name=$_name, onboardingAnswers=$safeAnswers');
+
+      await ApiClient.instance.post('/api/v1/users/sync', data: {
+        'uid': fb.FirebaseAuth.instance.currentUser?.uid,
+        'email': _email.trim().toLowerCase(),
+        'name': _name.trim(),
+        'onboardingAnswers': safeAnswers,
+      });
+
+      print('✅ REGISTRO: Sync API exitoso');
 
       ServiceLocator.markRegistrationComplete();
+      ServiceLocator.profileViewModel.loadUserProfile();
+      setLoading(false);
       setSuccess();
-      return registeredUser;
-    } catch (_) {
+      notifyListeners();
+      print('✅ REGISTRO: Completado exitosamente');
+      return true;
+    } on fb.FirebaseAuthException catch (e, stack) {
+      print('❌ ERROR FIREBASE AUTH: ${e.message} (code: ${e.code})');
+      print('   StackTrace: $stack');
+      setLoading(false);
+      setError(e.message ?? 'Error de autenticación.');
+      notifyListeners();
+      return false;
+    } catch (e, stack) {
+      print('❌ ERROR CRÍTICO EN REGISTRO: $e');
+      print('   StackTrace: $stack');
+      setLoading(false);
       setError('No se pudo completar el registro. Inténtalo de nuevo.');
-      return null;
+      notifyListeners();
+      return false;
     }
   }
 
-  /// Reinicia el formulario.
+  Future<bool> submitGoogleRegistration() async {
+    setLoading(true);
+    print('🟡 REGISTRO GOOGLE: Iniciando submitGoogleRegistration()');
+    notifyListeners();
+
+    try {
+      print('🟡 REGISTRO GOOGLE: Llamando AuthService.signInWithGoogle()...');
+      await AuthService.instance.signInWithGoogle();
+      final fb.User? user = fb.FirebaseAuth.instance.currentUser;
+      print('✅ REGISTRO GOOGLE: Usuario Firebase: ${user?.uid} / ${user?.email}');
+
+      if (user == null) {
+        setLoading(false);
+        setError('No se pudo obtener la cuenta de Google.');
+        notifyListeners();
+        return false;
+      }
+
+      final List<String> safeAnswers = ServiceLocator.onboardingAnswers ??
+          <String>['Inglés', 'Amigos/familia', 'Estoy empezando', '10 min/día',
+              'Para divertirme', 'Practicar leyendo', 'Mañana', 'Sí, empecemos'];
+
+      print('🟡 REGISTRO GOOGLE: Enviando sync a API...');
+      await ApiClient.instance.post('/api/v1/users/sync', data: {
+        'uid': user.uid,
+        'email': user.email,
+        'name': user.displayName ?? user.email?.split('@').first ?? 'Usuario',
+        'onboardingAnswers': safeAnswers,
+      });
+
+      print('✅ REGISTRO GOOGLE: Sync API exitoso');
+
+      ServiceLocator.markRegistrationComplete();
+      ServiceLocator.profileViewModel.loadUserProfile();
+      setLoading(false);
+      setSuccess();
+      notifyListeners();
+      print('✅ REGISTRO GOOGLE: Completado exitosamente');
+      return true;
+    } on fb.FirebaseAuthException catch (e, stack) {
+      print('❌ ERROR FIREBASE AUTH GOOGLE: ${e.message} (code: ${e.code})');
+      print('   StackTrace: $stack');
+      setLoading(false);
+      setError(e.message ?? 'Error de autenticación con Google.');
+      notifyListeners();
+      return false;
+    } catch (e, stack) {
+      print('❌ ERROR CRÍTICO EN REGISTRO GOOGLE: $e');
+      print('   StackTrace: $stack');
+      setLoading(false);
+      setError('No se pudo completar el registro con Google.');
+      notifyListeners();
+      return false;
+    }
+  }
+
   void reset() {
     _name = '';
     _email = '';
@@ -156,5 +204,6 @@ class RegistrationViewModel extends BaseViewModel {
     _emailError = null;
     _passwordError = null;
     resetState();
+    notifyListeners();
   }
 }

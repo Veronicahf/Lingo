@@ -77,6 +77,11 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                           }
 
                           ServiceLocator.markRegistrationRequired();
+                          ServiceLocator.setOnboardingAnswers(
+                            vm.allAnswers
+                                .map((a) => a.isNotEmpty ? a.first : '')
+                                .toList(),
+                          );
 
                           Navigator.pushReplacement(
                             context,

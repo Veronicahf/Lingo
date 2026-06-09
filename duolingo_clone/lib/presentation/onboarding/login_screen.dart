@@ -23,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _viewModel = LoginViewModel(userRepository: ServiceLocator.userRepository);
+    _viewModel = LoginViewModel();
     _viewModel.addListener(_handleViewModelChanges);
   }
 
@@ -513,55 +513,57 @@ class _FacebookButton extends StatelessWidget {
   }
 }
 
-/// Boton social de Google que por ahora solo muestra el mensaje de construccion.
+/// Boton social de Google que autentica contra el repositorio mock.
 class _GoogleButton extends StatelessWidget {
   /// Crea el boton de Google.
   const _GoogleButton();
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        UnderConstructionCommand().execute(context);
-      },
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: const Color(0xFF18222B),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.3),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              offset: const Offset(0, 4),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.language,
-              color: Colors.white,
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'GOOGLE',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
+    return Consumer<LoginViewModel>(
+      builder: (context, vm, _) {
+        return GestureDetector(
+          onTap: vm.isLoading ? null : () => vm.loginWithGoogle(),
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: const Color(0xFF18222B),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.3),
+                width: 1.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  offset: const Offset(0, 4),
+                  blurRadius: 8,
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.language,
+                  color: Colors.white.withValues(alpha: vm.isLoading ? 0.4 : 1.0),
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  vm.isLoading ? 'CONECTANDO...' : 'GOOGLE',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: vm.isLoading ? 0.4 : 1.0),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -330,39 +330,38 @@ class _FeedbackSheetContentState extends State<_FeedbackSheetContent> with Ticke
                   ),
                 ),
                 const SizedBox(height: 14),
-                if (isCorrect)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      if (widget.onContinue != null) {
-                        widget.onContinue!();
-                      }
-                    },
-                    child: Container(
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryGreenShadow.withOpacity(0.85),
-                            offset: const Offset(0, 8),
-                            blurRadius: 0,
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'CONTINUAR',
-                        style: TextStyle(
-                          color: Color(0xFF09220A),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.0,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (widget.onContinue != null) {
+                      widget.onContinue!();
+                    }
+                  },
+                  child: Container(
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: isCorrect ? primaryGreen : const Color(0xFFB94A4A),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isCorrect ? primaryGreenShadow : const Color(0xFF7A1E1E)).withOpacity(0.85),
+                          offset: const Offset(0, 8),
+                          blurRadius: 0,
                         ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'CONTINUAR',
+                      style: TextStyle(
+                        color: isCorrect ? const Color(0xFF09220A) : Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
                       ),
                     ),
                   ),
+                ),
               ],
             ],
           ),

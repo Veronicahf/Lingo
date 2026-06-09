@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../core/mock_database.dart';
+import '../../core/service_locator.dart';
 import '../../core/under_construction_command.dart';
 import '../../models/user_profile.dart';
 import '../../viewmodels/profile_viewmodel.dart';
+import '../onboarding/welcome_screen.dart';
 
 /// Pantalla de perfil del usuario que presenta su progreso y métricas principales.
 ///
@@ -28,6 +31,61 @@ class _ProfileViewState extends State<ProfileView> {
     });
   }
 
+  String _resolveDisplayName(UserProfile? profile) {
+    if (profile != null && profile.username.isNotEmpty) {
+      return profile.username;
+    }
+    final User? dbUser = MockDatabase.instance.currentUser;
+    if (dbUser != null && dbUser.name.isNotEmpty) {
+      return dbUser.name;
+    }
+    if (dbUser != null && dbUser.email.isNotEmpty) {
+      return dbUser.email;
+    }
+    return 'Perfil';
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        ServiceLocator.markRegistrationRequired();
+        ServiceLocator.incrementCompletedLessons();
+        MockDatabase.instance.clearActiveUser();
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) => const WelcomeScreen(),
+          ),
+          (route) => false,
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2B1A1A),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF5C2E2E), width: 2),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout_rounded, color: Color(0xFFFF6B6B), size: 22),
+            SizedBox(width: 8),
+            Text(
+              'CERRAR SESIÓN',
+              style: TextStyle(
+                color: Color(0xFFFF6B6B),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.7,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _viewModel.dispose();
@@ -47,7 +105,7 @@ class _ProfileViewState extends State<ProfileView> {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
             children: [
-              _ProfileHeader(username: profile?.username ?? 'Perfil'),
+              _ProfileHeader(username: _resolveDisplayName(profile)),
               const SizedBox(height: 18),
               _ProfileHeroAvatar(avatarUrl: profile?.avatarUrl ?? ''),
               const SizedBox(height: 18),
@@ -66,6 +124,8 @@ class _ProfileViewState extends State<ProfileView> {
               const _ProfileSectionTitle(text: 'RESUMEN'),
               const SizedBox(height: 12),
               _ProfileSummaryGrid(profile: profile),
+              const SizedBox(height: 24),
+              _buildLogoutButton(context),
               const SizedBox(height: 24),
               const _ProfileSectionTitle(text: 'MEDALLAS MENSUALES'),
             ],

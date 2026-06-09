@@ -35,6 +35,44 @@ class LessonNode {
   /// Lista de actividades que componen esta leccion.
   final List<LessonActivity> activities;
 
+  /// Construye un [LessonNode] desde un mapa JSON devuelto por la API.
+  factory LessonNode.fromJson(Map<String, dynamic> json) {
+    return LessonNode(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      type: LessonNodeType.values.firstWhere(
+        (t) => t.name == json['type'],
+        orElse: () => LessonNodeType.star,
+      ),
+      status: NodeStatus.values.firstWhere(
+        (s) => s.name == json['status'],
+        orElse: () => NodeStatus.locked,
+      ),
+      position: Offset(
+        (json['positionX'] as num?)?.toDouble() ?? 0,
+        (json['positionY'] as num?)?.toDouble() ?? 0,
+      ),
+      activities: (json['activities'] as List<dynamic>?)
+              ?.map((e) =>
+                  LessonActivity.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+
+  /// Serializa este nodo a un mapa JSON.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'type': type.name,
+      'status': status.name,
+      'positionX': position.dx,
+      'positionY': position.dy,
+      'activities': activities.map((a) => a.toJson()).toList(),
+    };
+  }
+
   /// Crea una copia del nodo actualizando solo los campos indicados.
   LessonNode copyWith({
     String? id,

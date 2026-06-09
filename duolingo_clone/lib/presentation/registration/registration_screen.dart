@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/mock_database.dart';
 import '../widgets/mascot_animation_widget.dart';
 import 'registration_viewmodel.dart';
 
@@ -225,8 +224,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     return GestureDetector(
       onTap: () async {
-        final User? user = await _viewModel.submitRegistration();
-        if (user != null && context.mounted) {
+        final bool success = await _viewModel.submitRegistration();
+        if (success && context.mounted) {
           Navigator.pop(context);
         }
       },
@@ -341,6 +340,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Future<void> _handleSocialLogin(BuildContext context, String provider) async {
+    if (provider == 'Google') {
+      final bool success = await _viewModel.submitGoogleRegistration();
+      if (success && context.mounted) {
+        Navigator.pop(context);
+      }
+      return;
+    }
+
     _nameController.text = 'Usuario de $provider';
     _viewModel.setName('Usuario de $provider');
     _emailController.text = '${provider.toLowerCase()}@lingo.local';
@@ -350,8 +357,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _passwordController.text = 'social123';
     _confirmPasswordController.text = 'social123';
 
-    final User? user = await _viewModel.submitRegistration();
-    if (user != null && context.mounted) {
+    final bool success = await _viewModel.submitRegistration();
+    if (success && context.mounted) {
       Navigator.pop(context);
     }
   }

@@ -35,7 +35,7 @@ class MockUserRepository {
       name: name,
       avatarUrl: 'https://example.com/avatar-onboarding-$courseId.png',
       streakDays: 0,
-      gems: 50,
+      gems: 0,
       totalXp: 0,
       hearts: 5,
       currentCourseId: course?.id ?? 'course_en',

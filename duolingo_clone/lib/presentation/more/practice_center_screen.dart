@@ -147,6 +147,12 @@ class _PracticeLessonScreenState extends State<_PracticeLessonScreen> {
   }
 
   @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ActiveLessonScreen(viewModel: _viewModel);
   }

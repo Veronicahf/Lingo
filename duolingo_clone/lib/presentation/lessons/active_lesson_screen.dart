@@ -307,11 +307,9 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
                           correctAnswer: lessonActivity.correctAnswer,
                           aiExplanation: lessonActivity.aiExplanation,
                           isGameOver: _viewModel.isGameOver,
-                          onContinue: _viewModel.isCorrect
-                              ? () {
-                                  _viewModel.nextActivity();
-                                }
-                              : null,
+                          onContinue: () {
+                            _viewModel.nextActivity();
+                          },
                         );
 
                         if (!mounted) return;

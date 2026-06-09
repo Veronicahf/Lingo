@@ -8,8 +8,11 @@ import '../../core/under_construction_command.dart';
 import '../../models/lesson_node.dart';
 import '../../viewmodels/home_viewmodel.dart';
 import '../lessons/active_lesson_screen.dart';
+import '../registration/registration_screen.dart';
 import '../shop/shop_screen.dart';
 import '../streak/streak_screen.dart';
+
+import '../registration/registration_viewmodel.dart';
 
 /// Pantalla principal que muestra el mapa de lecciones del usuario.
 class HomeView extends StatefulWidget {
@@ -61,6 +64,16 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<void> _onNodeTap(LessonNode node, List<LessonNode> allNodes) async {
+    // Bloqueo por registro obligatorio: demo user que ya completó 2 lecciones
+    if (node.status != NodeStatus.locked &&
+        RegistrationViewModel.isRegistrationRequired()) {
+      final int nodeIndex = _viewModel.lessonNodes.indexOf(node);
+      if (nodeIndex >= 2) {
+        _showRegistrationRequiredModal(context);
+        return;
+      }
+    }
+
     if (node.status == NodeStatus.locked) {
       _showLockedLessonMessage(context);
       return;
@@ -75,15 +88,21 @@ class _HomeViewState extends State<HomeView> {
 
     if (!mounted || completedNodeId == null) return;
 
-    // Guardar el índice completado para scroll persistente
+    // Demo: refrescar mapa desde el contador local (sin llamar loadLessonNodes
+    // que reinicia el flag de loading y causa flickering)
+    if (!ServiceLocator.isRegistered) {
+      _viewModel.refreshDemoNodes();
+    } else {
+      // Usuario registrado: recargar desde repositorio
+      await _viewModel.loadLessonNodes();
+    }
+
+    if (!mounted) return;
+
+    // Buscar el índice del nodo completado en la lista YA actualizada
     final int completedIndex =
         _viewModel.lessonNodes.indexWhere((n) => n.id == completedNodeId);
     ServiceLocator.setLastCompletedLessonIndex(completedIndex);
-
-    // Recargar mapa con la progresión actualizada
-    await _viewModel.loadLessonNodes();
-
-    if (!mounted) return;
 
     // Determinar el índice del siguiente nodo (X+1)
     final int nextIndex = completedIndex + 1;
@@ -101,6 +120,109 @@ class _HomeViewState extends State<HomeView> {
         _scrollToNode(nextIndex);
       });
     }
+  }
+
+  void _showRegistrationRequiredModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF18222B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2B3943),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Icon(Icons.lock_rounded, color: Color(0xFFFF9500), size: 48),
+              const SizedBox(height: 16),
+              const Text(
+                '¡Te has divertido!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Crea una cuenta ahora para guardar tu progreso',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context, rootNavigator: true)
+                        .pushAndRemoveUntil(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const RegistrationScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF55C7FF),
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0xFF2D7C9A),
+                          offset: Offset(0, 8),
+                          blurRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'CREAR CUENTA',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text(
+                  'Ahora no',
+                  style: TextStyle(
+                    color: Color(0xFF9AA7B1),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _scrollToNode(int nodeIndex) {

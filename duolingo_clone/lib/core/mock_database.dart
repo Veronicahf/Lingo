@@ -158,12 +158,12 @@ class MockDatabase {
       id: 'user_01',
       email: 'lingolearner@example.com',
       passwordHash: 'e10adc3949ba59abbe56e057f20f883e',
-      name: 'LingoLearner',
-      avatarUrl: 'https://placehold.co/256x256/png?text=Lingo',
-      streakDays: 42,
-      gems: 1280,
-      totalXp: 6180,
-      hearts: -1,
+      name: 'Invitado',
+      avatarUrl: 'https://placehold.co/256x256/png?text=Invitado',
+      streakDays: 0,
+      gems: 0,
+      totalXp: 0,
+      hearts: 5,
       currentCourseId: 'course_en',
     ),
     const User(
@@ -605,6 +605,10 @@ class MockDatabase {
         return _lessonActivities.sublist(1, 3);
       case 'lesson_09':
         return _lessonActivities.sublist(0, 4);
+      case 'demo_1':
+        return _lessonActivities.sublist(0, 2);
+      case 'demo_2':
+        return _lessonActivities.sublist(2, 4);
       case 'lesson_10':
         return _lessonActivities.sublist(0, 5);
       default:
