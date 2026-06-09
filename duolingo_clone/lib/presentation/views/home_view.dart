@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/command.dart';
+import '../../core/service_locator.dart';
 import '../../core/under_construction_command.dart';
 import '../../models/lesson_node.dart';
 import '../../viewmodels/home_viewmodel.dart';
@@ -11,9 +12,6 @@ import '../shop/shop_screen.dart';
 import '../streak/streak_screen.dart';
 
 /// Pantalla principal que muestra el mapa de lecciones del usuario.
-///
-/// Esta vista conecta con [HomeViewModel], escucha sus cambios y renderiza el recorrido desde
-/// una lista de [LessonNode] para evitar datos y posiciones hardcodeadas.
 class HomeView extends StatefulWidget {
   /// Crea la vista Home.
   const HomeView({super.key});
@@ -22,13 +20,20 @@ class HomeView extends StatefulWidget {
   State<HomeView> createState() => _HomeViewState();
 }
 
-/// Estado interno de [HomeView] que carga el mapa de lecciones y libera la ViewModel.
 class _HomeViewState extends State<HomeView> {
   late final HomeViewModel _viewModel = HomeViewModel();
-  late final Command<void> _showCourseDialogCommand = _ShowCourseDialogCommand(_showCourseDialog);
-  late final Command<void> _showEnergyDialogCommand = _ShowEnergyDialogCommand(_showEnergyDialog);
-  late final Command<void> _openStreakScreenCommand = _OpenStreakScreenCommand(_openStreakScreen);
-  late final Command<void> _openShopScreenCommand = _OpenShopScreenCommand(_openShopScreen);
+  late final ScrollController _scrollController = ScrollController();
+  late final Command<void> _showCourseDialogCommand =
+      _ShowCourseDialogCommand(_showCourseDialog);
+  late final Command<void> _showEnergyDialogCommand =
+      _ShowEnergyDialogCommand(_showEnergyDialog);
+  late final Command<void> _openStreakScreenCommand =
+      _OpenStreakScreenCommand(_openStreakScreen);
+  late final Command<void> _openShopScreenCommand =
+      _OpenShopScreenCommand(_openShopScreen);
+
+  String? _unlockedNodeId;
+  bool _pendingScroll = false;
 
   @override
   void initState() {
@@ -37,12 +42,105 @@ class _HomeViewState extends State<HomeView> {
       _viewModel.loadLessonNodes();
       _viewModel.loadProfile();
     });
+
+    // Scroll persistente: posicionarse en la última lección completada
+    final int savedIndex = ServiceLocator.lastCompletedLessonIndex;
+    if (savedIndex > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _scrollToNode(savedIndex);
+      });
+    }
   }
 
   @override
   void dispose() {
     _viewModel.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _onNodeTap(LessonNode node, List<LessonNode> allNodes) async {
+    if (node.status == NodeStatus.locked) {
+      _showLockedLessonMessage(context);
+      return;
+    }
+
+    final String? completedNodeId = await Navigator.push<String>(
+      context,
+      MaterialPageRoute<String>(
+        builder: (_) => ActiveLessonScreen(nodeId: node.id),
+      ),
+    );
+
+    if (!mounted || completedNodeId == null) return;
+
+    // Guardar el índice completado para scroll persistente
+    final int completedIndex =
+        _viewModel.lessonNodes.indexWhere((n) => n.id == completedNodeId);
+    ServiceLocator.setLastCompletedLessonIndex(completedIndex);
+
+    // Recargar mapa con la progresión actualizada
+    await _viewModel.loadLessonNodes();
+
+    if (!mounted) return;
+
+    // Determinar el índice del siguiente nodo (X+1)
+    final int nextIndex = completedIndex + 1;
+
+    if (nextIndex < _viewModel.lessonNodes.length) {
+      final String nextNodeId = _viewModel.lessonNodes[nextIndex].id;
+      setState(() {
+        _unlockedNodeId = nextNodeId;
+        _pendingScroll = true;
+      });
+
+      // Esperar a que el layout se pinte y luego hacer scroll
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _scrollToNode(nextIndex);
+      });
+    }
+  }
+
+  void _scrollToNode(int nodeIndex) {
+    if (!_scrollController.hasClients) return;
+
+    // Calcular la posición Y aproximada del nodo
+    const double topPadding = 12;
+    const double normalSize = 88;
+    const double verticalGap = 132;
+    const double bossSize = 118;
+
+    double yPos = 0;
+    for (var i = 0; i <= nodeIndex; i++) {
+      final bool isBoss = i < _viewModel.lessonNodes.length &&
+          _viewModel.lessonNodes[i].type == LessonNodeType.boss;
+      final double size = isBoss ? bossSize : normalSize;
+      if (i == 0) {
+        yPos = topPadding;
+      } else {
+        yPos += isBoss ? verticalGap + 18 : verticalGap;
+      }
+    }
+    // Centrar en pantalla
+    final double viewportHeight = _scrollController.position.viewportDimension;
+    final double targetScroll = yPos - viewportHeight / 3;
+
+    _scrollController.animateTo(
+      math.max(0, targetScroll),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeOutCubic,
+    );
+
+    // Limpiar unlock después de la animación
+    Future<void>.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      setState(() {
+        _unlockedNodeId = null;
+        _pendingScroll = false;
+      });
+    });
   }
 
   @override
@@ -53,6 +151,7 @@ class _HomeViewState extends State<HomeView> {
         return Container(
           color: Colors.transparent,
           child: SingleChildScrollView(
+            controller: _scrollController,
             physics: const BouncingScrollPhysics(),
             child: SafeArea(
               bottom: false,
@@ -76,7 +175,12 @@ class _HomeViewState extends State<HomeView> {
                     stageTitle: _viewModel.currentStageTitle,
                   ),
                   const SizedBox(height: 18),
-                  _LearningPath(lessonNodes: _viewModel.lessonNodes),
+                  _LearningPath(
+                    lessonNodes: _viewModel.lessonNodes,
+                    unlockedNodeId: _unlockedNodeId,
+                    onNodeTap: (node) =>
+                        _onNodeTap(node, _viewModel.lessonNodes),
+                  ),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -152,61 +256,41 @@ class _HomeViewState extends State<HomeView> {
   }
 }
 
-/// Comando que encapsula la apertura del modal de cursos.
+/// Comandos
 class _ShowCourseDialogCommand implements Command<void> {
-  /// Crea el comando enlazado a la acción visual correspondiente.
   const _ShowCourseDialogCommand(this._action);
-
   final VoidCallback _action;
 
   @override
-  void execute([BuildContext? context]) {
-    _action();
-  }
+  void execute([BuildContext? context]) => _action();
 }
 
-/// Comando que encapsula la apertura del modal de energía.
 class _ShowEnergyDialogCommand implements Command<void> {
-  /// Crea el comando enlazado a la acción visual correspondiente.
   const _ShowEnergyDialogCommand(this._action);
-
   final VoidCallback _action;
 
   @override
-  void execute([BuildContext? context]) {
-    _action();
-  }
+  void execute([BuildContext? context]) => _action();
 }
 
-/// Comando que encapsula la navegación hacia la pantalla de racha.
 class _OpenStreakScreenCommand implements Command<void> {
-  /// Crea el comando enlazado a la navegación.
   const _OpenStreakScreenCommand(this._action);
-
   final VoidCallback _action;
 
   @override
-  void execute([BuildContext? context]) {
-    _action();
-  }
+  void execute([BuildContext? context]) => _action();
 }
 
-/// Comando que encapsula la navegación hacia la tienda.
 class _OpenShopScreenCommand implements Command<void> {
-  /// Crea el comando enlazado a la navegación.
   const _OpenShopScreenCommand(this._action);
-
   final VoidCallback _action;
 
   @override
-  void execute([BuildContext? context]) {
-    _action();
-  }
+  void execute([BuildContext? context]) => _action();
 }
 
 /// Barra superior con los indicadores de progreso del usuario.
 class _TopStatsBar extends StatelessWidget {
-  /// Crea la barra superior con valores decorativos del progreso.
   const _TopStatsBar({
     required this.courseScoreLabel,
     required this.energyLabel,
@@ -277,9 +361,7 @@ class _TopStatsBar extends StatelessWidget {
   }
 }
 
-/// Elemento visual simple usado dentro de la barra superior de progreso.
 class _TopStatItem extends StatelessWidget {
-  /// Crea un indicador compacto con icono y valor.
   const _TopStatItem({
     required this.icon,
     required this.iconColor,
@@ -314,9 +396,7 @@ class _TopStatItem extends StatelessWidget {
       ],
     );
 
-    if (onTap == null) {
-      return row;
-    }
+    if (onTap == null) return row;
 
     return Semantics(
       button: true,
@@ -330,11 +410,8 @@ class _TopStatItem extends StatelessWidget {
   }
 }
 
-/// Tarjeta flotante que muestra la información del curso actual.
 class _CourseModalCard extends StatelessWidget {
-  /// Crea la tarjeta del modal de cursos a partir del ViewModel del Home.
   const _CourseModalCard({required this.viewModel});
-
   final HomeViewModel viewModel;
 
   @override
@@ -435,11 +512,8 @@ class _CourseModalCard extends StatelessWidget {
   }
 }
 
-/// Tarjeta flotante que muestra el estado de energía ilimitada.
 class _EnergyModalCard extends StatelessWidget {
-  /// Crea la tarjeta del modal de energía a partir del ViewModel del Home.
   const _EnergyModalCard({required this.viewModel});
-
   final HomeViewModel viewModel;
 
   @override
@@ -530,11 +604,8 @@ class _EnergyModalCard extends StatelessWidget {
   }
 }
 
-/// Banner de etapa que contextualiza el tema actual del mapa.
 class _StageBanner extends StatelessWidget {
-  /// Crea el banner de etapa superior.
   const _StageBanner({required this.sectionTitle, required this.stageTitle});
-
   final String sectionTitle;
   final String stageTitle;
 
@@ -615,10 +686,15 @@ class _StageBanner extends StatelessWidget {
 
 /// Ruta visual construida a partir de datos estructurados del mapa.
 class _LearningPath extends StatelessWidget {
-  /// Crea la ruta a partir de la lista de nodos recibida desde el ViewModel.
-  const _LearningPath({required this.lessonNodes});
+  const _LearningPath({
+    required this.lessonNodes,
+    this.unlockedNodeId,
+    this.onNodeTap,
+  });
 
   final List<LessonNode> lessonNodes;
+  final String? unlockedNodeId;
+  final ValueChanged<LessonNode>? onNodeTap;
 
   @override
   Widget build(BuildContext context) {
@@ -648,6 +724,9 @@ class _LearningPath extends StatelessWidget {
                   left: item.left,
                   top: item.top,
                   size: item.size,
+                  isNewlyUnlocked: item.node.id == unlockedNodeId,
+                  isActive: item.node.status == NodeStatus.active,
+                  onTap: () => onNodeTap?.call(item.node),
                 ),
             ],
           ),
@@ -659,53 +738,75 @@ class _LearningPath extends StatelessWidget {
 
 /// Nodo posicionado que traduce un [LessonNode] en una pieza visual del mapa.
 class _PathLesson extends StatefulWidget {
-  /// Crea un nodo visual a partir de su modelo de dominio.
   const _PathLesson({
     required this.node,
     required this.left,
     required this.top,
     required this.size,
+    this.isNewlyUnlocked = false,
+    this.isActive = false,
+    this.onTap,
   });
 
   final LessonNode node;
   final double left;
   final double top;
   final double size;
+  final bool isNewlyUnlocked;
+  final bool isActive;
+  final VoidCallback? onTap;
 
   @override
   State<_PathLesson> createState() => _PathLessonState();
 }
 
 class _PathLessonState extends State<_PathLesson>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _pulseController = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1150),
   );
 
+  late final AnimationController _unlockController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 600),
+  );
+
   @override
   void initState() {
     super.initState();
-    if (widget.node.status == NodeStatus.active) {
+    if (widget.isActive) {
       _pulseController.repeat(reverse: true);
+    }
+    if (widget.isNewlyUnlocked) {
+      _playUnlockAnimation();
     }
   }
 
   @override
   void didUpdateWidget(covariant _PathLesson oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final bool isActive = widget.node.status == NodeStatus.active;
-    if (isActive && !_pulseController.isAnimating) {
+    if (widget.isActive && !_pulseController.isAnimating) {
       _pulseController.repeat(reverse: true);
-    } else if (!isActive && _pulseController.isAnimating) {
+    } else if (!widget.isActive && _pulseController.isAnimating) {
       _pulseController.stop();
       _pulseController.value = 0;
     }
+
+    // Detectar desbloqueo
+    if (widget.isNewlyUnlocked && !oldWidget.isNewlyUnlocked) {
+      _playUnlockAnimation();
+    }
+  }
+
+  void _playUnlockAnimation() {
+    _unlockController.forward(from: 0);
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _unlockController.dispose();
     super.dispose();
   }
 
@@ -719,11 +820,11 @@ class _PathLessonState extends State<_PathLesson>
       _ => _LessonNode(
           size: widget.size,
           node: widget.node,
+          isNewlyUnlocked: widget.isNewlyUnlocked,
         ),
     };
 
     final bool isLocked = widget.node.status == NodeStatus.locked;
-    final bool isActive = widget.node.status == NodeStatus.active;
 
     return Positioned(
       top: widget.top,
@@ -732,27 +833,27 @@ class _PathLessonState extends State<_PathLesson>
         label: widget.node.title,
         button: !isLocked,
         child: GestureDetector(
-          onTap: () {
-            if (isLocked) {
-              _showLockedLessonMessage(context);
-              return;
-            }
-
-            Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (_) => const ActiveLessonScreen(),
-              ),
-            );
-          },
+          onTap: widget.onTap,
           child: AnimatedBuilder(
-            animation: _pulseController,
+            animation: Listenable.merge([_pulseController, _unlockController]),
             builder: (context, child) {
-              final double pulseScale =
-                  isActive ? 1 + (math.sin(_pulseController.value * math.pi * 2) * 0.04) : 1;
+              final double unlockScale = widget.isNewlyUnlocked
+                  ? 1 +
+                      (_unlockController.value *
+                          math.sin(_unlockController.value * math.pi * 4) *
+                          0.08)
+                  : 0;
+
+              final double pulseScale = widget.isActive
+                  ? 1 +
+                      (math.sin(_pulseController.value * math.pi * 2) * 0.04)
+                  : 0;
+
+              final double totalScale =
+                  1 + unlockScale + (widget.isActive ? pulseScale - 1 : 0);
 
               return Transform.scale(
-                scale: pulseScale,
+                scale: math.max(1, totalScale),
                 child: child,
               );
             },
@@ -764,9 +865,7 @@ class _PathLessonState extends State<_PathLesson>
   }
 }
 
-/// Distribución calculada para pintar un mapa en zig-zag.
 class _PathLayout {
-  /// Crea un layout de recorrido con posición y centros para la línea de conexión.
   const _PathLayout({required this.items, required this.centers, required this.totalHeight});
 
   final List<_PathItemPlacement> items;
@@ -807,9 +906,7 @@ class _PathLayout {
   }
 }
 
-/// Posición calculada para un nodo individual del recorrido.
 class _PathItemPlacement {
-  /// Crea una ubicación para un nodo.
   const _PathItemPlacement({required this.node, required this.left, required this.top, required this.size});
 
   final LessonNode node;
@@ -818,9 +915,7 @@ class _PathItemPlacement {
   final double size;
 }
 
-/// Pintor de la línea de conexión entre LessonNode.
 class _PathLinePainter extends CustomPainter {
-  /// Crea un pintor con la secuencia de centros a conectar.
   const _PathLinePainter({required this.nodes, required this.centers});
 
   final List<LessonNode> nodes;
@@ -871,17 +966,22 @@ class _PathLinePainter extends CustomPainter {
 
 /// Nodo circular reutilizable para representar una leccion del mapa.
 class _LessonNode extends StatefulWidget {
-  /// Crea el render visual de una leccion basada en su tipo y estado.
-  const _LessonNode({required this.size, required this.node});
+  const _LessonNode({
+    required this.size,
+    required this.node,
+    this.isNewlyUnlocked = false,
+  });
 
   final double size;
   final LessonNode node;
+  final bool isNewlyUnlocked;
 
   @override
   State<_LessonNode> createState() => _LessonNodeState();
 }
 
-class _LessonNodeState extends State<_LessonNode> with SingleTickerProviderStateMixin {
+class _LessonNodeState extends State<_LessonNode>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1150),
@@ -934,6 +1034,7 @@ class _LessonNodeState extends State<_LessonNode> with SingleTickerProviderState
   }
 
   Color _backgroundColor() {
+    if (widget.isNewlyUnlocked) return const Color(0xFF6D5CFF);
     return switch (widget.node.status) {
       NodeStatus.completed => const Color(0xFF30D158),
       NodeStatus.active => const Color(0xFF6D5CFF),
@@ -965,20 +1066,23 @@ class _LessonNodeState extends State<_LessonNode> with SingleTickerProviderState
     return AnimatedBuilder(
       animation: _pulseController,
       builder: (context, child) {
-        final double pulseScale = isActive ? 1 + (math.sin(_pulseController.value * math.pi * 2) * 0.04) : 1;
+        final double pulseScale =
+            isActive ? 1 + (math.sin(_pulseController.value * math.pi * 2) * 0.04) : 1;
 
         return Transform.scale(
           scale: pulseScale,
           child: child,
         );
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
         width: widget.size,
         height: widget.size,
         decoration: BoxDecoration(
           color: _backgroundColor(),
           shape: BoxShape.circle,
-          boxShadow: widget.node.status == NodeStatus.locked
+          boxShadow: widget.node.status == NodeStatus.locked && !widget.isNewlyUnlocked
               ? const <BoxShadow>[]
               : [
                   BoxShadow(
@@ -1011,13 +1115,8 @@ class _LessonNodeState extends State<_LessonNode> with SingleTickerProviderState
   }
 }
 
-/// Nodo tipo boss o personaje que representa un hito especial del mapa.
 class _CharacterNode extends StatelessWidget {
-  /// Crea la version ilustrada del boss del mapa.
-  const _CharacterNode({
-    required this.size,
-    required this.status,
-  });
+  const _CharacterNode({required this.size, required this.status});
 
   final double size;
   final NodeStatus status;
@@ -1031,17 +1130,16 @@ class _CharacterNode extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isCompleted = status == NodeStatus.completed;
     final bool isActive = status == NodeStatus.active;
-    final Color bodyColor = isCompleted
-        ? _completedColor
-        : isActive
-            ? _activeColor
-            : _lockedColor;
-    final Color faceColor = isCompleted || isActive ? Colors.white : _lockedIconColor;
+    final Color bodyColor =
+        isCompleted ? _completedColor : isActive ? _activeColor : _lockedColor;
+    final Color faceColor =
+        isCompleted || isActive ? Colors.white : _lockedIconColor;
     final List<BoxShadow> shadows = status == NodeStatus.locked
         ? const <BoxShadow>[]
         : [
             BoxShadow(
-              color: (isCompleted ? const Color(0xFF14914C) : const Color(0xFF4636B5)).withValues(alpha: 0.88),
+              color: (isCompleted ? const Color(0xFF14914C) : const Color(0xFF4636B5))
+                  .withValues(alpha: 0.88),
               offset: const Offset(0, 8),
               blurRadius: 0,
             ),
@@ -1084,7 +1182,6 @@ class _CharacterNode extends StatelessWidget {
   }
 }
 
-/// Muestra una respuesta breve cuando el usuario toca una leccion bloqueada.
 void _showLockedLessonMessage(BuildContext context) {
   ScaffoldMessenger.of(context)
     ..clearSnackBars()

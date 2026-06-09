@@ -2,15 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../core/animation_service.dart';
-import '../layout/main_layout_screen.dart';
 
 /// Pantalla de victoria que aparece al completar una leccion.
+///
+/// Al presionar "CONTINUAR", la pantalla se cierra y retorna el [completedNodeId]
+/// para que la pantalla anterior (ActiveLessonScreen) pueda pasarlo al HomeView
+/// y activar la animación de transición del mapa.
 class LessonCompleteScreen extends StatelessWidget {
   /// Crea la pantalla de lección completada.
-  const LessonCompleteScreen({super.key, this.xpGained = 10});
+  const LessonCompleteScreen({
+    super.key,
+    this.xpGained = 10,
+    required this.completedNodeId,
+  });
 
   /// Experiencia ganada en la lección.
   final int xpGained;
+
+  /// ID del nodo del mapa que se completó.
+  final String completedNodeId;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +39,10 @@ class LessonCompleteScreen extends StatelessWidget {
                     SizedBox(
                       width: 240,
                       height: 240,
-                      child: Lottie.asset(AnimationService.instance.getAssetForEmotion('rocket'), fit: BoxFit.contain),
+                      child: Lottie.asset(
+                        AnimationService.instance.getAssetForEmotion('rocket'),
+                        fit: BoxFit.contain,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     const Text(
@@ -57,10 +70,7 @@ class LessonCompleteScreen extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
-                  );
+                  Navigator.pop(context);
                 },
                 child: Container(
                   width: double.infinity,

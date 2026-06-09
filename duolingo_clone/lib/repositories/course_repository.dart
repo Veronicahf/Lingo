@@ -6,8 +6,9 @@ import '../models/lesson_node.dart';
 // TODO: Conectar a API Spring Boot real.
 /// Repositorio simulado que entrega el mapa de lecciones desde datos locales.
 ///
-/// Esta implementacion mantiene el Home desacoplado de la fuente real de datos mientras se
-/// desarrolla la integracion con la API.
+/// Cada [LessonNode] incluye su propia lista de [LessonActivity] para que
+/// el [LessonViewModel] cargue las actividades del nodo específico al
+/// iniciar una lección.
 class MockCourseRepository {
   /// Crea un repositorio mock de cursos.
   const MockCourseRepository();
@@ -22,6 +23,7 @@ class MockCourseRepository {
         type: LessonNodeType.star,
         status: NodeStatus.active,
         position: Offset(146, 18),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_01'),
       ),
       LessonNode(
         id: 'lesson_02',
@@ -29,6 +31,7 @@ class MockCourseRepository {
         type: LessonNodeType.star,
         status: NodeStatus.locked,
         position: Offset(88, 138),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_02'),
       ),
       LessonNode(
         id: 'lesson_03',
@@ -36,6 +39,7 @@ class MockCourseRepository {
         type: LessonNodeType.book,
         status: NodeStatus.locked,
         position: Offset(48, 260),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_03'),
       ),
       LessonNode(
         id: 'lesson_04',
@@ -43,6 +47,7 @@ class MockCourseRepository {
         type: LessonNodeType.boss,
         status: NodeStatus.completed,
         position: Offset(282, 250),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_04'),
       ),
       LessonNode(
         id: 'lesson_05',
@@ -50,6 +55,7 @@ class MockCourseRepository {
         type: LessonNodeType.book,
         status: NodeStatus.locked,
         position: Offset(100, 400),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_05'),
       ),
       LessonNode(
         id: 'lesson_06',
@@ -57,6 +63,7 @@ class MockCourseRepository {
         type: LessonNodeType.dumbbell,
         status: NodeStatus.locked,
         position: Offset(146, 530),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_06'),
       ),
       LessonNode(
         id: 'lesson_07',
@@ -64,6 +71,7 @@ class MockCourseRepository {
         type: LessonNodeType.book,
         status: NodeStatus.locked,
         position: Offset(256, 680),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_07'),
       ),
       LessonNode(
         id: 'lesson_08',
@@ -71,6 +79,7 @@ class MockCourseRepository {
         type: LessonNodeType.boss,
         status: NodeStatus.completed,
         position: Offset(42, 830),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_08'),
       ),
       LessonNode(
         id: 'lesson_09',
@@ -78,6 +87,7 @@ class MockCourseRepository {
         type: LessonNodeType.star,
         status: NodeStatus.locked,
         position: Offset(246, 970),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_09'),
       ),
       LessonNode(
         id: 'lesson_10',
@@ -85,6 +95,7 @@ class MockCourseRepository {
         type: LessonNodeType.boss,
         status: NodeStatus.locked,
         position: Offset(176, 1088),
+        activities: MockDatabase.instance.getActivitiesForNode('lesson_10'),
       ),
     ];
   }

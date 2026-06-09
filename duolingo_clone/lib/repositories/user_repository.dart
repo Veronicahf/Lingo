@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 
 import '../core/mock_database.dart';
 import '../models/challenge.dart';
+import '../models/dtos/user_dto.dart';
 import '../models/news_article.dart';
 import '../models/more_option.dart';
 import '../models/ranking_user.dart';
@@ -73,6 +74,29 @@ class MockUserRepository {
 
     final User updatedUser = currentUser.copyWith(
       totalXp: currentUser.totalXp + xp,
+    );
+
+    MockDatabase.instance.upsertUser(updatedUser);
+    MockDatabase.instance.setActiveUser(updatedUser.id);
+    return updatedUser;
+  }
+
+  /// Persiste el progreso completo del usuario a partir de un [UserDTO].
+  ///
+  /// Encapsula la actualización de racha, nivel y XP en un solo objeto JSON
+  /// antes de enviarlo al repositorio, asegurando un contrato de comunicación uniforme.
+  Future<User?> saveUserProgress(UserDTO userDto) async {
+    final User? existingUser = MockDatabase.instance.findUserById(userDto.userId);
+    if (existingUser == null) return null;
+
+    final User updatedUser = existingUser.copyWith(
+      name: userDto.name,
+      email: userDto.email,
+      streakDays: userDto.streakDays,
+      totalXp: userDto.totalXp,
+      hearts: userDto.hearts,
+      gems: userDto.gems,
+      currentCourseId: userDto.currentCourseId,
     );
 
     MockDatabase.instance.upsertUser(updatedUser);

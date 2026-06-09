@@ -110,6 +110,7 @@ class HomeViewModel extends BaseViewModel {
         type: nodes[index].type,
         status: newStatus,
         position: nodes[index].position,
+        activities: nodes[index].activities,
       );
     });
   }
