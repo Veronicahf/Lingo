@@ -72,11 +72,46 @@ class HomeViewModel extends BaseViewModel {
     setLoading(true);
 
     try {
-      _lessonNodes = await _courseRepository.getLessonNodes();
+      final List<LessonNode> rawNodes = await _courseRepository.getLessonNodes();
+      _lessonNodes = _applyStrictProgression(rawNodes);
       setSuccess();
     } catch (error) {
       setError('No se pudo cargar el mapa de lecciones.');
     }
+  }
+
+  /// Aplica la maquina de estados estricta del mapa:
+  ///
+  /// 1. Busca el primer nodo que NO este completado.
+  /// 2. Ese nodo pasa a ser [NodeStatus.active].
+  /// 3. Todos los nodos anteriores pasan a [NodeStatus.completed].
+  /// 4. Todos los nodos posteriores pasan a [NodeStatus.locked].
+  List<LessonNode> _applyStrictProgression(List<LessonNode> nodes) {
+    if (nodes.isEmpty) return nodes;
+
+    final int firstUncompletedIndex = nodes.indexWhere((n) => n.status != NodeStatus.completed);
+
+    // Si todos estan completados, mantener el estado actual
+    if (firstUncompletedIndex == -1) return nodes;
+
+    return List<LessonNode>.generate(nodes.length, (index) {
+      NodeStatus newStatus;
+      if (index < firstUncompletedIndex) {
+        newStatus = NodeStatus.completed;
+      } else if (index == firstUncompletedIndex) {
+        newStatus = NodeStatus.active;
+      } else {
+        newStatus = NodeStatus.locked;
+      }
+
+      return LessonNode(
+        id: nodes[index].id,
+        title: nodes[index].title,
+        type: nodes[index].type,
+        status: newStatus,
+        position: nodes[index].position,
+      );
+    });
   }
 
   // TODO: Consumir API de Spring Boot cuando el backend de perfil este disponible.

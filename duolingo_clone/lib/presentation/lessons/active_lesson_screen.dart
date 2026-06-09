@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/command.dart';
+import '../../models/dtos/lesson_dto.dart';
 import '../../viewmodels/lesson_viewmodel.dart';
+import '../widgets/mascot_animation_widget.dart';
 import 'feedback_sheet.dart';
 import 'lesson_complete_screen.dart';
 import 'lesson_factory.dart';
@@ -70,12 +72,16 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   }
 
   void _syncCurrentAnswerWithActivity() {
-    final String activityId = _viewModel.currentActivity.id;
-    if (_lastActivityId == activityId) {
+    final activity = _viewModel.currentActivityOrNull;
+    if (activity == null) {
       return;
     }
 
-    _lastActivityId = activityId;
+    if (_lastActivityId == activity.id) {
+      return;
+    }
+
+    _lastActivityId = activity.id;
     if (!mounted) {
       return;
     }
@@ -101,11 +107,33 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   Widget build(BuildContext context) {
     final LessonViewModel viewModel = _viewModel;
 
-    if (viewModel.activities.isEmpty) {
+    final lessonActivity = viewModel.currentActivityOrNull;
+
+    if (viewModel.activities.isEmpty || lessonActivity == null) {
       return Scaffold(
-        appBar: AppBar(),
-        body: const Center(
-          child: Text('No hay actividades disponibles para esta lección.'),
+        backgroundColor: _backgroundColor,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                MascotAnimationWidget.fromEmotion(
+                  emotion: 'loading',
+                  width: 220,
+                  height: 220,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Preparando tu lección...',
+                  style: TextStyle(
+                    color: Color(0xFF9AA7B1),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -185,7 +213,7 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          _viewModel.currentActivity.prompt,
+                          lessonActivity.prompt,
                           textAlign: TextAlign.left,
                           style: const TextStyle(
                             color: Colors.white,
@@ -200,7 +228,7 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
                             width: double.infinity,
                             color: Colors.transparent,
                             child: LessonFactory.buildActivity(
-                              _viewModel.currentActivity,
+                              LessonDTO.fromActivity(lessonActivity),
                               (answer) {
                                 setState(() {
                                   _currentAnswer = answer;
@@ -236,8 +264,9 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
                         await showFeedbackSheet(
                           context,
                           isCorrect: _viewModel.isCorrect,
-                          correctAnswer: _viewModel.currentActivity.correctAnswer,
-                          aiExplanation: _viewModel.currentActivity.aiExplanation,
+                          correctAnswer: lessonActivity.correctAnswer,
+                          aiExplanation: lessonActivity.aiExplanation,
+                          isGameOver: _viewModel.isGameOver,
                           onContinue: _viewModel.isCorrect
                               ? () {
                                   _viewModel.nextActivity();

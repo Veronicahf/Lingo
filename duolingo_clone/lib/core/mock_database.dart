@@ -59,6 +59,7 @@ class User {
     String? avatarUrl,
     int? streakDays,
     int? gems,
+    int? totalXp,
     int? hearts,
     String? currentCourseId,
   }) {
@@ -248,7 +249,7 @@ class MockDatabase {
   static final List<OnboardingQuestion> _onboardingQuestions = <OnboardingQuestion>[
     const OnboardingQuestion(
       title: '¿Qué te gustaría aprender?',
-      animationPath: 'assets/lottie/cat_happy.json',
+      animationEmotion: 'happy',
       options: [
         OnboardingOption(text: 'Inglés', isEnabled: true),
         OnboardingOption(text: 'Francés', isEnabled: false),
@@ -258,7 +259,7 @@ class MockDatabase {
     ),
     const OnboardingQuestion(
       title: '¿Cómo supiste de Duolingo?',
-      animationPath: 'assets/lottie/Cat_typing.json',
+      animationEmotion: 'typing',
       options: [
         OnboardingOption(text: 'Amigos/familia'),
         OnboardingOption(text: 'Búsqueda en Google'),
@@ -269,7 +270,7 @@ class MockDatabase {
     ),
     const OnboardingQuestion(
       title: '¿Cuánto inglés sabes?',
-      animationPath: 'assets/lottie/cat_idle.json',
+      animationEmotion: 'idle',
       options: [
         OnboardingOption(text: 'Estoy empezando a aprender inglés'),
         OnboardingOption(text: 'Conozco algunas palabras comunes'),
@@ -280,7 +281,7 @@ class MockDatabase {
     ),
     const OnboardingQuestion(
       title: '¿Cuál es tu meta diaria de aprendizaje?',
-      animationPath: 'assets/lottie/cat_sleeping.json',
+      animationEmotion: 'sleeping',
       options: [
         OnboardingOption(text: '3 min/día'),
         OnboardingOption(text: '10 min/día'),
@@ -290,7 +291,7 @@ class MockDatabase {
     ),
     const OnboardingQuestion(
       title: '¿Por qué quieres aprender?',
-      animationPath: 'assets/lottie/cat_happy.json',
+      animationEmotion: 'happy',
       options: [
         OnboardingOption(text: 'Para divertirme'),
         OnboardingOption(text: 'Prepararme para viajar'),
@@ -304,7 +305,7 @@ class MockDatabase {
     ),
     const OnboardingQuestion(
       title: '¿Qué formato te ayuda más a aprender?',
-      animationPath: 'assets/lottie/Cat_in_a_rocket.json',
+      animationEmotion: 'rocket',
       options: [
         OnboardingOption(text: 'Practicar leyendo'),
         OnboardingOption(text: 'Practicar escuchando'),
@@ -314,7 +315,7 @@ class MockDatabase {
     ),
     const OnboardingQuestion(
       title: '¿Cuándo quieres aprender?',
-      animationPath: 'assets/lottie/cat_happy.json',
+      animationEmotion: 'happy',
       options: [
         OnboardingOption(text: 'Mañana'),
         OnboardingOption(text: 'Tarde'),
@@ -323,7 +324,7 @@ class MockDatabase {
     ),
     const OnboardingQuestion(
       title: '¿Listo para comenzar tu primera lección?',
-      animationPath: 'assets/lottie/cat_happy.json',
+      animationEmotion: 'happy',
       options: [
         OnboardingOption(text: 'Sí, empecemos'),
         OnboardingOption(text: 'Necesito un poco más'),
@@ -404,6 +405,134 @@ class MockDatabase {
     ),
   ];
 
+  static final List<LessonActivity> _practicePool = <LessonActivity>[
+    const LessonActivity(
+      id: 'practice_01',
+      type: ActivityType.repeat,
+      prompt: 'Repite la frase en voz alta.',
+      payload: <String, dynamic>{
+        'title': 'Practica la pronunciación',
+        'sentence': 'I like to read books.',
+        'audioText': 'I like to read books.',
+      },
+      correctAnswer: 'repeat_completed',
+      aiExplanation: 'Repetir en voz alta mejora la retención y la fluidez oral.',
+      mascotEmotion: 'speaking',
+      category: 'speaking',
+    ),
+    const LessonActivity(
+      id: 'practice_02',
+      type: ActivityType.repeat,
+      prompt: 'Repite lo que escuchas.',
+      payload: <String, dynamic>{
+        'title': 'Repite la frase',
+        'sentence': 'She goes to school every morning.',
+        'audioText': 'She goes to school every morning.',
+      },
+      correctAnswer: 'repeat_completed',
+      aiExplanation: 'La repetición ayuda a fijar patrones gramaticales y de entonación.',
+      mascotEmotion: 'speaking',
+      category: 'speaking',
+    ),
+    const LessonActivity(
+      id: 'practice_03',
+      type: ActivityType.listenSelect,
+      prompt: 'Escucha y elige la opción correcta.',
+      payload: <String, dynamic>{
+        'title': 'Comprensión auditiva',
+        'subtitle': 'They play soccer on weekends.',
+        'audioText': 'They play soccer on weekends.',
+        'options': <String>[
+          'Ellos juegan fútbol los fines de semana',
+          'Ellos juegan tenis los lunes',
+          'Nosotros jugamos fútbol',
+          'Ellos corren los fines de semana',
+        ],
+      },
+      correctAnswer: 'Ellos juegan fútbol los fines de semana',
+      aiExplanation: 'La frase usa el presente simple para expresar rutinas. "They play soccer on weekends" se traduce como una acción habitual.',
+      mascotEmotion: 'idle',
+      category: 'listening',
+    ),
+    const LessonActivity(
+      id: 'practice_04',
+      type: ActivityType.listenSelect,
+      prompt: 'Escucha y selecciona la respuesta correcta.',
+      payload: <String, dynamic>{
+        'title': 'Escucha con atención',
+        'subtitle': 'The cat is sleeping on the sofa.',
+        'audioText': 'The cat is sleeping on the sofa.',
+        'options': <String>[
+          'El gato está durmiendo en el sofá',
+          'El perro está corriendo en el parque',
+          'El gato está comiendo en la cocina',
+          'El pájaro está cantando en el árbol',
+        ],
+      },
+      correctAnswer: 'El gato está durmiendo en el sofá',
+      aiExplanation: 'El verbo "is sleeping" está en presente continuo, indicando una acción en progreso.',
+      mascotEmotion: 'idle',
+      category: 'listening',
+    ),
+    const LessonActivity(
+      id: 'practice_05',
+      type: ActivityType.fillBlank,
+      prompt: 'Completa la oración con la palabra correcta.',
+      payload: <String, dynamic>{
+        'title': 'Completa la frase',
+        'sentence': 'She ___ to music every day.',
+        'options': <String>['listens', 'listen', 'listening', 'listened'],
+        'correctOption': 'listens',
+      },
+      correctAnswer: 'listens',
+      aiExplanation: 'En presente simple, la tercera persona singular lleva una "s" al final del verbo: "listens".',
+      mascotEmotion: 'typing',
+      category: 'grammar',
+    ),
+    const LessonActivity(
+      id: 'practice_06',
+      type: ActivityType.fillBlank,
+      prompt: 'Elige la opción correcta para completar la oración.',
+      payload: <String, dynamic>{
+        'title': 'Gramática rápida',
+        'sentence': 'They ___ to the park yesterday.',
+        'options': <String>['went', 'go', 'goes', 'going'],
+        'correctOption': 'went',
+      },
+      correctAnswer: 'went',
+      aiExplanation: '"Yesterday" indica pasado, por lo que usamos el pasado simple "went".',
+      mascotEmotion: 'typing',
+      category: 'grammar',
+    ),
+    const LessonActivity(
+      id: 'practice_07',
+      type: ActivityType.selectTranslation,
+      prompt: 'Selecciona la traducción correcta.',
+      payload: <String, dynamic>{
+        'textToTranslate': 'The children are playing outside',
+        'title': 'Traduce la frase',
+        'options': <String>['Los niños están jugando afuera', 'Los niños juegan afuera', 'Los niños jugaron afuera', 'Los niños jugarán afuera'],
+      },
+      correctAnswer: 'Los niños están jugando afuera',
+      aiExplanation: '"Are playing" es presente continuo, indicando una acción que ocurre ahora.',
+      mascotEmotion: 'happy',
+      category: 'translation',
+    ),
+    const LessonActivity(
+      id: 'practice_08',
+      type: ActivityType.translateSentence,
+      prompt: 'Traduce la oración al inglés.',
+      payload: <String, dynamic>{
+        'sentence': 'Nosotros vivimos en una casa grande.',
+        'hint': 'We live in a big house.',
+      },
+      correctAnswer: 'We live in a big house.',
+      aiExplanation: 'La estructura mantiene sujeto + verbo + complemento. "Vivimos" es "we live" en presente simple.',
+      mascotEmotion: 'typing',
+      category: 'translation',
+    ),
+  ];
+
   static final List<MoreOption> _moreOptions = <MoreOption>[
     const MoreOption(
       id: 'sounds',
@@ -445,6 +574,9 @@ class MockDatabase {
 
   /// Actividades disponibles para una leccion de prueba.
   List<LessonActivity> get lessonActivities => _lessonActivities;
+
+  /// Actividades del centro de practica con categorias para filtrar.
+  List<LessonActivity> get practicePool => _practicePool;
 
   /// Opciones disponibles para el BottomSheet de la sección Más.
   List<MoreOption> get moreOptions => _moreOptions;

@@ -658,7 +658,7 @@ class _LearningPath extends StatelessWidget {
 }
 
 /// Nodo posicionado que traduce un [LessonNode] en una pieza visual del mapa.
-class _PathLesson extends StatelessWidget {
+class _PathLesson extends StatefulWidget {
   /// Crea un nodo visual a partir de su modelo de dominio.
   const _PathLesson({
     required this.node,
@@ -673,25 +673,63 @@ class _PathLesson extends StatelessWidget {
   final double size;
 
   @override
+  State<_PathLesson> createState() => _PathLessonState();
+}
+
+class _PathLessonState extends State<_PathLesson>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1150),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.node.status == NodeStatus.active) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PathLesson oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final bool isActive = widget.node.status == NodeStatus.active;
+    if (isActive && !_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    } else if (!isActive && _pulseController.isAnimating) {
+      _pulseController.stop();
+      _pulseController.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final Widget child = switch (node.type) {
+    final Widget child = switch (widget.node.type) {
       LessonNodeType.boss => _CharacterNode(
-          size: size,
-          status: node.status,
+          size: widget.size,
+          status: widget.node.status,
         ),
       _ => _LessonNode(
-          size: size,
-          node: node,
+          size: widget.size,
+          node: widget.node,
         ),
     };
 
-    final bool isLocked = node.status == NodeStatus.locked;
+    final bool isLocked = widget.node.status == NodeStatus.locked;
+    final bool isActive = widget.node.status == NodeStatus.active;
 
     return Positioned(
-      top: top,
-      left: left,
+      top: widget.top,
+      left: widget.left,
       child: Semantics(
-        label: node.title,
+        label: widget.node.title,
         button: !isLocked,
         child: GestureDetector(
           onTap: () {
@@ -707,7 +745,19 @@ class _PathLesson extends StatelessWidget {
               ),
             );
           },
-          child: child,
+          child: AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              final double pulseScale =
+                  isActive ? 1 + (math.sin(_pulseController.value * math.pi * 2) * 0.04) : 1;
+
+              return Transform.scale(
+                scale: pulseScale,
+                child: child,
+              );
+            },
+            child: child,
+          ),
         ),
       ),
     );

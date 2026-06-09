@@ -22,7 +22,7 @@ class OnboardingQuestion {
   /// Crea una pregunta del wizard de onboarding.
   const OnboardingQuestion({
     required this.title,
-    required this.animationPath,
+    required this.animationEmotion,
     required this.options,
     this.allowMultipleSelection = false,
   });
@@ -30,8 +30,8 @@ class OnboardingQuestion {
   /// Texto principal que se muestra como pregunta.
   final String title;
 
-  /// Ruta del Lottie que acompaña visualmente a la pregunta.
-  final String animationPath;
+  /// Emoción de la mascota que acompaña visualmente a la pregunta.
+  final String animationEmotion;
 
   /// Lista de opciones disponibles para responder.
   final List<OnboardingOption> options;

@@ -36,6 +36,7 @@ class LessonActivity {
     required this.correctAnswer,
     this.aiExplanation,
     this.mascotEmotion = 'idle',
+    this.category,
   });
 
   /// Identificador unico de la actividad.
@@ -58,4 +59,7 @@ class LessonActivity {
 
   /// Estado emocional de la mascota para elegir la animacion Lottie apropiada.
   final String mascotEmotion;
+
+  /// Categoria opcional para filtrar actividades en el centro de practica.
+  final String? category;
 }

@@ -32,7 +32,12 @@ class OnboardingViewModel extends BaseViewModel {
   int get totalSteps => _totalSteps;
 
   /// Pregunta actual que se muestra en pantalla.
-  OnboardingQuestion get currentQuestion => _questions[_currentStep];
+  OnboardingQuestion get currentQuestion {
+    if (_questions.isEmpty || _currentStep >= _questions.length) {
+      throw StateError('No hay preguntas de onboarding para el paso $_currentStep.');
+    }
+    return _questions[_currentStep];
+  }
 
   /// Respuesta seleccionada para el paso actual, si existe.
   String? get selectedAnswer => _answers[_currentStep].isEmpty ? null : _answers[_currentStep].first;

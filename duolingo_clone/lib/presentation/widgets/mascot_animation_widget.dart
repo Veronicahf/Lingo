@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../core/animation_service.dart';
+
 /// Componente centralizado para renderizar la mascota animada de la app.
 ///
 /// Este widget aísla la carga de animaciones Lottie para que la UI reutilice una sola
@@ -23,7 +25,7 @@ class MascotAnimationWidget extends StatelessWidget {
   }) {
     return MascotAnimationWidget(
       key: key,
-      assetPath: assetPathForEmotion(emotion),
+      assetPath: AnimationService.instance.getAssetForEmotion(emotion),
       width: width,
       height: height,
     );
@@ -31,22 +33,7 @@ class MascotAnimationWidget extends StatelessWidget {
 
   /// Resuelve la ruta del asset a partir de la emoción de la mascota.
   static String assetPathForEmotion(String emotion) {
-    switch (emotion.trim().toLowerCase()) {
-      case 'happy':
-        return 'assets/lottie/cat_happy.json';
-      case 'speaking':
-      case 'typing':
-        return 'assets/lottie/Cat_typing.json';
-      case 'sad':
-        return 'assets/lottie/cat_sad.json';
-      case 'sleeping':
-        return 'assets/lottie/cat_sleeping.json';
-      case 'rocket':
-        return 'assets/lottie/Cat_in_a_rocket.json';
-      case 'idle':
-      default:
-        return 'assets/lottie/cat_idle.json';
-    }
+    return AnimationService.instance.getAssetForEmotion(emotion);
   }
 
   /// Ruta del archivo JSON de Lottie dentro de assets.
