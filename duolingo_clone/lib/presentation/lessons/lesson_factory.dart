@@ -33,6 +33,8 @@ class LessonFactory {
       case ActivityType.repeat:
         return SpeakingWidget(
           payload: _asSpeakingPayload(activity.payload),
+          mascotEmotion: activity.mascotEmotion,
+          onAnswerSelected: onAnswerSelected,
           onSkip: onRepeatSkip,
         );
       case ActivityType.matchPairs:
@@ -48,6 +50,7 @@ class LessonFactory {
       case ActivityType.translateSentence:
         return TranslateSentenceWidget(
           payload: _asTranslateSentencePayload(activity.payload),
+          mascotEmotion: activity.mascotEmotion,
           onAnswerSelected: onAnswerSelected,
         );
     }

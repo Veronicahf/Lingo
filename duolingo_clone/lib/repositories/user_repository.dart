@@ -35,13 +35,35 @@ class MockUserRepository {
       avatarUrl: 'https://example.com/avatar-onboarding-$courseId.png',
       streakDays: 0,
       gems: 50,
+      totalXp: 0,
       hearts: 5,
       currentCourseId: course?.id ?? 'course_en',
     );
 
-    MockDatabase.instance.upsertUser(user);
-    MockDatabase.instance.setActiveUser(user.id);
-    return user;
+    return registerUser(user);
+  }
+
+  /// Registra un usuario ya construido y activa la sesion en memoria.
+  Future<User> registerUser(User newUser) async {
+    MockDatabase.instance.upsertUser(newUser);
+    MockDatabase.instance.setActiveUser(newUser.id);
+    return newUser;
+  }
+
+  /// Suma experiencia al usuario actualmente activo.
+  Future<User?> addXpToCurrentUser(int xp) async {
+    final User? currentUser = MockDatabase.instance.currentUser;
+    if (currentUser == null || xp <= 0) {
+      return currentUser;
+    }
+
+    final User updatedUser = currentUser.copyWith(
+      totalXp: currentUser.totalXp + xp,
+    );
+
+    MockDatabase.instance.upsertUser(updatedUser);
+    MockDatabase.instance.setActiveUser(updatedUser.id);
+    return updatedUser;
   }
 
   /// Verifica credenciales contra la base en memoria y activa la sesion si coinciden.
@@ -91,7 +113,7 @@ class MockUserRepository {
       gems: currentUser.gems,
       hearts: currentUser.hearts,
       leagueName: currentCourse?.name ?? 'Sin curso activo',
-      totalXp: _calculateTotalXp(currentUser),
+      totalXp: currentUser.totalXp,
     );
   }
 

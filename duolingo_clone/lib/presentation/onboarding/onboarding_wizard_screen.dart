@@ -17,41 +17,17 @@ class OnboardingWizardScreen extends StatefulWidget {
 
 class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   late final OnboardingViewModel _viewModel;
-  bool _didNavigate = false;
 
   @override
   void initState() {
     super.initState();
     _viewModel = OnboardingViewModel();
-    _viewModel.addListener(_handleViewModelChanges);
   }
 
   @override
   void dispose() {
-    _viewModel.removeListener(_handleViewModelChanges);
     _viewModel.dispose();
     super.dispose();
-  }
-
-  void _handleViewModelChanges() {
-    if (!mounted) {
-      return;
-    }
-
-    if (_viewModel.isSuccess && !_didNavigate) {
-      _didNavigate = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
-          (route) => false,
-        );
-      });
-    }
   }
 
   void _previousStep() {
@@ -88,10 +64,26 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                       selectedAnswer: vm.currentAnswer,
                       selectedAnswers: vm.selectedAnswers,
                       isLoading: vm.isRegistering,
+                      isLastStep: vm.isLastStep,
                       onOptionSelected: (option) async {
                         await vm.selectOption(option);
                       },
-                      onContinuePressed: vm.continueStep,
+                      onContinuePressed: () async {
+                        if (vm.isLastStep) {
+                          await vm.finishOnboarding();
+                          if (!context.mounted) {
+                            return;
+                          }
+
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
+                          );
+                          return;
+                        }
+
+                        await vm.continueStep();
+                      },
                     ),
                   ),
                 ),
@@ -172,6 +164,7 @@ class _OnboardingQuestionContent extends StatelessWidget {
     required this.selectedAnswer,
     required this.selectedAnswers,
     required this.isLoading,
+    required this.isLastStep,
     required this.onOptionSelected,
     required this.onContinuePressed,
   });
@@ -180,6 +173,7 @@ class _OnboardingQuestionContent extends StatelessWidget {
   final String? selectedAnswer;
   final List<String> selectedAnswers;
   final bool isLoading;
+  final bool isLastStep;
   final ValueChanged<String> onOptionSelected;
   final Future<void> Function() onContinuePressed;
 
@@ -279,7 +273,7 @@ class _OnboardingQuestionContent extends StatelessWidget {
                         );
                       },
                     ),
-                    if (question.allowMultipleSelection) ...[
+                    if (question.allowMultipleSelection || isLastStep) ...[
                       const SizedBox(height: 16),
                       GestureDetector(
                         onTap: isLoading ? null : () => onContinuePressed(),

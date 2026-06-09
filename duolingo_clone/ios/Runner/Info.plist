@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSSpeechRecognitionUsageDescription</key>
+<string>Necesitamos el micrófono para evaluar tu pronunciación.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Necesitamos grabar tu voz para los ejercicios de hablar.</string>
 </dict>
 </plist>

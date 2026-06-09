@@ -35,6 +35,7 @@ class LessonActivity {
     required this.payload,
     required this.correctAnswer,
     this.aiExplanation,
+    this.mascotEmotion = 'idle',
   });
 
   /// Identificador unico de la actividad.
@@ -54,4 +55,7 @@ class LessonActivity {
 
   /// Explicación opcional simulada por IA para ayudar al usuario a entender el error.
   final String? aiExplanation;
+
+  /// Estado emocional de la mascota para elegir la animacion Lottie apropiada.
+  final String mascotEmotion;
 }

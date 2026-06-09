@@ -1,13 +1,20 @@
 import '../core/base_viewmodel.dart';
 import '../core/audio_service.dart';
 import '../core/mock_database.dart';
+import '../core/service_locator.dart';
 import '../models/lesson_activity.dart';
+import '../repositories/user_repository.dart';
 
 /// ViewModel que controla el flujo de una leccion basada en actividades.
 ///
 /// Esta capa actua como el cerebro de la leccion: toma los juegos mock desde la base en memoria,
 /// administra el indice actual, valida respuestas y notifica a la vista cuando el estado cambia.
 class LessonViewModel extends BaseViewModel {
+  LessonViewModel({MockUserRepository? userRepository})
+      : _userRepository = userRepository ?? ServiceLocator.userRepository;
+
+  final MockUserRepository _userRepository;
+
   List<LessonActivity> _activities = const [];
   int _currentIndex = 0;
   bool _isChecking = false;
@@ -97,7 +104,7 @@ class LessonViewModel extends BaseViewModel {
   }
 
   /// Avanza a la siguiente actividad o marca la leccion como completada.
-  void nextActivity() {
+  Future<void> nextActivity() async {
     if (_activities.isEmpty) {
       return;
     }
@@ -117,6 +124,7 @@ class LessonViewModel extends BaseViewModel {
     _isChecking = false;
     _isCorrect = false;
     _selectedAnswer = '';
+    await _userRepository.addXpToCurrentUser(10);
     setSuccess(); // Notifica que la lección está completada
   }
 

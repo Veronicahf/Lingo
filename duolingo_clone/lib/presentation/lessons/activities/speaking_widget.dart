@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/audio_service.dart';
 import '../../../core/command.dart';
+import '../../../core/speech_service.dart';
+import '../../widgets/mascot_animation_widget.dart';
 
 /// Widget de actividad de speaking para repetir lo que dice el personaje.
 ///
@@ -9,10 +12,22 @@ import '../../../core/command.dart';
 /// leccion desacoplado de la UI.
 class SpeakingWidget extends StatefulWidget {
   /// Crea la actividad de speaking con su payload y el comando para saltarla.
-  const SpeakingWidget({super.key, required this.payload, required this.onSkip});
+  const SpeakingWidget({
+    super.key,
+    required this.payload,
+    required this.mascotEmotion,
+    required this.onAnswerSelected,
+    required this.onSkip,
+  });
 
   /// Datos de la actividad, normalmente con `title` y `sentence`.
   final Map<String, dynamic> payload;
+
+  /// Emoción de la mascota asociada a esta actividad.
+  final String mascotEmotion;
+
+  /// Texto reconocido por el micrófono.
+  final ValueChanged<String>? onAnswerSelected;
 
   /// Comando que marca la actividad como saltada en el ViewModel.
   final Command<void>? onSkip;
@@ -24,6 +39,13 @@ class SpeakingWidget extends StatefulWidget {
 /// Estado interno de [SpeakingWidget] que controla la microinteraccion del boton de microfono.
 class _SpeakingWidgetState extends State<SpeakingWidget> {
   bool _isMicPressed = false;
+  String _textoDetectado = '';
+
+  @override
+  void initState() {
+    super.initState();
+    SpeechService.instance.initSpeech();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +57,12 @@ class _SpeakingWidgetState extends State<SpeakingWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          MascotAnimationWidget.fromEmotion(
+            emotion: widget.mascotEmotion,
+            width: 160,
+            height: 160,
+          ),
+          const SizedBox(height: 8),
           Text(
             title,
             style: const TextStyle(
@@ -45,6 +73,47 @@ class _SpeakingWidgetState extends State<SpeakingWidget> {
           ),
           const SizedBox(height: 28),
           _CharacterAndBubble(sentence: sentence),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => AudioService.instance.speak(widget.payload),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B2B36),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF364955), width: 2),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.volume_up_rounded, color: Color(0xFF59C8FF), size: 22),
+                  SizedBox(width: 8),
+                  Text(
+                    'ESCUCHAR FRASE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_textoDetectado.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              _textoDetectado,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF9FE33A),
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
           const Spacer(),
           Center(
             child: GestureDetector(
@@ -52,18 +121,18 @@ class _SpeakingWidgetState extends State<SpeakingWidget> {
                 setState(() {
                   _isMicPressed = true;
                 });
-              },
-              onTapCancel: () {
-                setState(() {
-                  _isMicPressed = false;
+                SpeechService.instance.startListening((text) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  setState(() {
+                    _textoDetectado = text;
+                  });
                 });
               },
-              onTapUp: (_) {
-                setState(() {
-                  _isMicPressed = false;
-                });
-                // TODO: Implementar speech_to_text para capturar el audio.
-              },
+              onTapCancel: _finishListening,
+              onTapUp: (_) => _finishListening(),
               child: AnimatedScale(
                 scale: _isMicPressed ? 0.93 : 1,
                 duration: const Duration(milliseconds: 120),
@@ -100,6 +169,15 @@ class _SpeakingWidgetState extends State<SpeakingWidget> {
         ],
       ),
     );
+  }
+
+  Future<void> _finishListening() async {
+    setState(() {
+      _isMicPressed = false;
+    });
+
+    await SpeechService.instance.stopListening();
+    widget.onAnswerSelected?.call(_textoDetectado);
   }
 
   String _resolveTitle(Map<String, dynamic> payload) {

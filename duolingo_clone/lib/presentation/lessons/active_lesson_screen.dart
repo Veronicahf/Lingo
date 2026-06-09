@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/command.dart';
 import '../../viewmodels/lesson_viewmodel.dart';
 import 'feedback_sheet.dart';
+import 'lesson_complete_screen.dart';
 import 'lesson_factory.dart';
 
 /// Pantalla contenedora de una leccion activa dentro del motor de actividades.
@@ -29,6 +31,7 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   late final Command<void> _skipRepeatCommand;
   String _currentAnswer = '';
   String? _lastActivityId;
+  bool _didNavigateToCompletion = false;
 
   static const Color _backgroundColor = Color(0xFF101820);
   static const Color _progressColor = Color(0xFF9EEB2A);
@@ -83,17 +86,33 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   }
 
   void _onLessonComplete() {
-    if (_viewModel.isSuccess && mounted) {
-      Navigator.maybePop(context);
+    if (_viewModel.isSuccess && mounted && !_didNavigateToCompletion) {
+      _didNavigateToCompletion = true;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => const LessonCompleteScreen(),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _viewModel,
-      builder: (context, _) {
-        return Scaffold(
+    final LessonViewModel viewModel = _viewModel;
+
+    if (viewModel.activities.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(
+          child: Text('No hay actividades disponibles para esta lección.'),
+        ),
+      );
+    }
+
+    return ChangeNotifierProvider<LessonViewModel>.value(
+      value: viewModel,
+      child: Scaffold(
           backgroundColor: _backgroundColor,
           body: SafeArea(
             bottom: false,
@@ -118,31 +137,42 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Container(
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: _progressTrack,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: LayoutBuilder(builder: (context, _) {
-                            return Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: FractionallySizedBox(
-                                    alignment: Alignment.centerLeft,
-                                    widthFactor: _viewModel.progress.clamp(0.0, 1.0),
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: _progressColor,
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                    ),
+                        child: Consumer<LessonViewModel>(
+                          builder: (context, vm, _) {
+                            final double targetProgress = vm.progress.clamp(0.0, 1.0);
+
+                            return TweenAnimationBuilder<double>(
+                              tween: Tween<double>(begin: 0.0, end: targetProgress),
+                              duration: const Duration(milliseconds: 320),
+                              curve: Curves.easeOutCubic,
+                              builder: (context, animatedProgress, _) {
+                                return Container(
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: _progressTrack,
+                                    borderRadius: BorderRadius.circular(18),
                                   ),
-                                ),
-                              ],
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: FractionallySizedBox(
+                                          alignment: Alignment.centerLeft,
+                                          widthFactor: animatedProgress,
+                                          child: Container(
+                                            margin: const EdgeInsets.symmetric(vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: _progressColor,
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                             );
-                          }),
+                          },
                         ),
                       ),
                     ],
@@ -242,8 +272,7 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
               ),
             ),
           ),
-        );
-      },
+        ),
     );
   }
 }
