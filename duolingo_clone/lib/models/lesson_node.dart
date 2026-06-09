@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'lesson_activity.dart';
 
 /// Modelo que representa un nodo de leccion dentro del mapa de progreso.
 ///
-/// Esta entidad centraliza el identificador, contenido, tipo y posicion visual de cada punto
-/// del recorrido para que la vista construya el mapa desde datos y no desde valores quemados.
+/// Cada nodo contiene su propia lista de [LessonActivity] que el usuario debe
+/// completar secuencialmente. Cuando todas las actividades están resueltas,
+/// el nodo se marca como completado.
 class LessonNode {
-  /// Crea un nodo de leccion con su metadata y posicion.
+  /// Crea un nodo de leccion con su metadata, posicion y actividades.
   const LessonNode({
     required this.id,
     required this.title,
     required this.type,
     required this.status,
     required this.position,
+    required this.activities,
   });
 
   /// Identificador unico del nodo.
@@ -28,6 +31,28 @@ class LessonNode {
 
   /// Posicion dentro del mapa, expresada como coordenadas relativas.
   final Offset position;
+
+  /// Lista de actividades que componen esta leccion.
+  final List<LessonActivity> activities;
+
+  /// Crea una copia del nodo actualizando solo los campos indicados.
+  LessonNode copyWith({
+    String? id,
+    String? title,
+    LessonNodeType? type,
+    NodeStatus? status,
+    Offset? position,
+    List<LessonActivity>? activities,
+  }) {
+    return LessonNode(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      position: position ?? this.position,
+      activities: activities ?? this.activities,
+    );
+  }
 }
 
 /// Tipos visuales soportados para un nodo de leccion.

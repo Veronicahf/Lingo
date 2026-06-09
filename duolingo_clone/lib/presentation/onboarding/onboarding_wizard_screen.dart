@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/service_locator.dart';
 import '../../models/onboarding_question.dart';
 import '../../viewmodels/onboarding_viewmodel.dart';
 import '../layout/main_layout_screen.dart';
@@ -63,17 +64,19 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
                       question: vm.currentQuestion,
                       selectedAnswer: vm.currentAnswer,
                       selectedAnswers: vm.selectedAnswers,
-                      isLoading: vm.isRegistering,
+                      isLoading: vm.isProcessing,
                       isLastStep: vm.isLastStep,
                       onOptionSelected: (option) async {
                         await vm.selectOption(option);
                       },
                       onContinuePressed: () async {
                         if (vm.isLastStep) {
-                          await vm.finishOnboarding();
+                          await vm.completeCollection();
                           if (!context.mounted) {
                             return;
                           }
+
+                          ServiceLocator.markRegistrationRequired();
 
                           Navigator.pushReplacement(
                             context,

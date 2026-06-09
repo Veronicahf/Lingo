@@ -17,6 +17,39 @@ class ServiceLocator {
   static late MockNewsRepository _newsRepository;
   static late MockShopRepository _shopRepository;
 
+  static bool _registrationRequired = false;
+  static int _completedLessonsCount = 0;
+  static int _lastCompletedLessonIndex = -1;
+
+  /// Indica si el usuario debe completar el registro antes de continuar.
+  static bool get registrationRequired => _registrationRequired;
+
+  /// Número de lecciones completadas acumuladas (persistente entre sesiones).
+  static int get completedLessonsCount => _completedLessonsCount;
+
+  /// Marca que el onboarding recolectó datos pero falta el registro.
+  static void markRegistrationRequired() {
+    _registrationRequired = true;
+  }
+
+  /// Marca que el registro se completó exitosamente.
+  static void markRegistrationComplete() {
+    _registrationRequired = false;
+  }
+
+  /// Incrementa el contador acumulado de lecciones completadas.
+  static void incrementCompletedLessons() {
+    _completedLessonsCount++;
+  }
+
+  /// Índice del último nodo completado en el mapa (para scroll persistente).
+  static int get lastCompletedLessonIndex => _lastCompletedLessonIndex;
+
+  /// Guarda el índice del nodo completado para restaurar scroll al regresar.
+  static void setLastCompletedLessonIndex(int index) {
+    _lastCompletedLessonIndex = index;
+  }
+
   /// Inicializa las dependencias globales requeridas por la aplicacion.
   static void init() {
     _audioService = AudioService.instance;

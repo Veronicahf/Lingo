@@ -2,23 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/command.dart';
+import '../../core/service_locator.dart';
 import '../../models/dtos/lesson_dto.dart';
 import '../../viewmodels/lesson_viewmodel.dart';
+import '../registration/registration_screen.dart';
 import '../widgets/mascot_animation_widget.dart';
 import 'feedback_sheet.dart';
 import 'lesson_complete_screen.dart';
 import 'lesson_factory.dart';
 
 /// Pantalla contenedora de una leccion activa dentro del motor de actividades.
-///
-/// Esta vista actua como el cascaron visual de la leccion y delega el contenido jugable a
-/// [LessonFactory], mientras escucha al [LessonViewModel] para pintar progreso y validar respuestas.
 class ActiveLessonScreen extends StatefulWidget {
   /// Crea la pantalla de leccion activa.
   ///
-  /// Si [viewModel] se proporciona, se utiliza ese ViewModel; de lo contrario, se crea uno nuevo
-  /// y se carga la lección completa mediante [loadLesson()].
-  const ActiveLessonScreen({super.key, this.viewModel});
+  /// [nodeId] es el identificador del [LessonNode] del mapa a jugar.
+  /// Si es null, se asume que el [viewModel] ya fue precargado (ej: práctica).
+  const ActiveLessonScreen({super.key, this.nodeId, this.viewModel});
+
+  /// ID del nodo del mapa cuyas actividades se cargarán.
+  /// Puede ser null cuando se usa en modo práctica con un ViewModel inyectado.
+  final String? nodeId;
 
   /// ViewModel opcional para inyectar desde otra pantalla.
   final LessonViewModel? viewModel;
@@ -27,7 +30,6 @@ class ActiveLessonScreen extends StatefulWidget {
   State<ActiveLessonScreen> createState() => _ActiveLessonScreenState();
 }
 
-/// Estado interno de [ActiveLessonScreen] que mantiene vivo el ViewModel de leccion.
 class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   late final LessonViewModel _viewModel;
   late final Command<void> _skipRepeatCommand;
@@ -44,16 +46,13 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // Usar el ViewModel inyectado o crear uno nuevo
     _viewModel = widget.viewModel ?? LessonViewModel();
     _skipRepeatCommand = _SkipRepeatCommand(_viewModel);
-    
-    // Si se creó un nuevo ViewModel, cargar la lección completa
-    if (widget.viewModel == null) {
-      _viewModel.loadLesson();
+
+    if (widget.viewModel == null && widget.nodeId != null) {
+      _viewModel.loadLesson(widget.nodeId!);
     }
-    
+
     _viewModel.addListener(_syncCurrentAnswerWithActivity);
     _viewModel.addListener(_onLessonComplete);
   }
@@ -62,12 +61,11 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   void dispose() {
     _viewModel.removeListener(_syncCurrentAnswerWithActivity);
     _viewModel.removeListener(_onLessonComplete);
-    
-    // Solo disponer si fue creado aquí (no inyectado)
+
     if (widget.viewModel == null) {
       _viewModel.dispose();
     }
-    
+
     super.dispose();
   }
 
@@ -91,25 +89,38 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
     });
   }
 
-  void _onLessonComplete() {
+  Future<void> _onLessonComplete() async {
     if (_viewModel.isSuccess && mounted && !_didNavigateToCompletion) {
       _didNavigateToCompletion = true;
-      Navigator.pushReplacement(
+
+      // En modo práctica, no hay nodo del mapa, solo volvemos atrás
+      if (widget.nodeId == null) {
+        Navigator.pop(context);
+        return;
+      }
+
+      await Navigator.push<void>(
         context,
         MaterialPageRoute<void>(
-          builder: (_) => const LessonCompleteScreen(),
+          builder: (_) => LessonCompleteScreen(
+            xpGained: 10,
+            completedNodeId: widget.nodeId!,
+          ),
         ),
       );
+
+      if (!mounted) return;
+      Navigator.pop(context, widget.nodeId);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final LessonViewModel viewModel = _viewModel;
-
     final lessonActivity = viewModel.currentActivityOrNull;
 
     if (viewModel.activities.isEmpty || lessonActivity == null) {
+      final bool isError = viewModel.state == LessonState.error;
       return Scaffold(
         backgroundColor: _backgroundColor,
         body: SafeArea(
@@ -118,19 +129,48 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 MascotAnimationWidget.fromEmotion(
-                  emotion: 'loading',
+                  emotion: isError ? 'sad' : 'loading',
                   width: 220,
                   height: 220,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Preparando tu lección...',
-                  style: TextStyle(
+                Text(
+                  isError
+                      ? 'No se pudieron cargar las actividades'
+                      : 'Preparando tu lección...',
+                  style: const TextStyle(
                     color: Color(0xFF9AA7B1),
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (isError)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: GestureDetector(
+                      onTap: widget.nodeId != null
+                          ? () => viewModel.loadLesson(widget.nodeId!)
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF55C7FF),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: const Text(
+                          'REINTENTAR',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -273,6 +313,17 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
                                 }
                               : null,
                         );
+
+                        if (!mounted) return;
+                        if (ServiceLocator.registrationRequired &&
+                            _viewModel.lessonsCompleted >= 2) {
+                          Navigator.push<void>(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) => const RegistrationScreen(),
+                            ),
+                          );
+                        }
                       },
                 child: Container(
                   height: 72,
@@ -306,10 +357,8 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   }
 }
 
-
 /// Comando que marca la actividad actual como saltada dentro de la leccion.
 class _SkipRepeatCommand implements Command<void> {
-  /// Crea el comando asociado al ViewModel de la leccion.
   const _SkipRepeatCommand(this._viewModel);
 
   final LessonViewModel _viewModel;

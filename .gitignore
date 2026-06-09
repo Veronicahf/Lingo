@@ -1,0 +1,14 @@
+# Ignorar compilados de Maven/Java
+lingo-api/target/
+*.class
+*.jar
+*.war
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Archivos de configuración con secretos (IMPORTANTE)
+# Si tu application.properties original tiene las contraseñas reales, ignóralo también:
+lingo-api/src/main/resources/application.properties
