@@ -581,6 +581,37 @@ class MockDatabase {
   /// Opciones disponibles para el BottomSheet de la sección Más.
   List<MoreOption> get moreOptions => _moreOptions;
 
+  /// Devuelve las actividades asignadas a un nodo específico del mapa.
+  ///
+  /// Cada nodo recibe 2-3 actividades del pool para simular una lección completa.
+  List<LessonActivity> getActivitiesForNode(String nodeId) {
+    // Distribución fija de actividades del pool de lecciones por nodo
+    switch (nodeId) {
+      case 'lesson_01':
+        return _lessonActivities.sublist(0, 3);
+      case 'lesson_02':
+        return _lessonActivities.sublist(2, 5);
+      case 'lesson_03':
+        return _lessonActivities.sublist(1, 4);
+      case 'lesson_04':
+        return _lessonActivities.sublist(0, 2);
+      case 'lesson_05':
+        return _lessonActivities.sublist(3, 5);
+      case 'lesson_06':
+        return _lessonActivities.sublist(0, 3);
+      case 'lesson_07':
+        return _lessonActivities.sublist(2, 4);
+      case 'lesson_08':
+        return _lessonActivities.sublist(1, 3);
+      case 'lesson_09':
+        return _lessonActivities.sublist(0, 4);
+      case 'lesson_10':
+        return _lessonActivities.sublist(0, 5);
+      default:
+        return _lessonActivities.take(2).toList();
+    }
+  }
+
   /// Devuelve el usuario actualmente activo.
   User? get currentUser {
     return _activeUserId == null ? null : _findUserById(_activeUserId!);
