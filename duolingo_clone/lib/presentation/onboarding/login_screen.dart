@@ -68,9 +68,9 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 8),
-                const Center(
-                  child: MascotAnimationWidget(
-                    assetPath: 'assets/lottie/Cat_typing.json',
+                Center(
+                  child: MascotAnimationWidget.fromEmotion(
+                    emotion: 'typing',
                     width: 180,
                     height: 150,
                   ),

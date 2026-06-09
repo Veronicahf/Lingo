@@ -191,8 +191,8 @@ class _OnboardingQuestionContent extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  MascotAnimationWidget(
-                    assetPath: question.animationPath,
+                  MascotAnimationWidget.fromEmotion(
+                    emotion: question.animationEmotion,
                     width: 220,
                     height: 220,
                   ),

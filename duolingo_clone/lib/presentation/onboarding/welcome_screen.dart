@@ -74,8 +74,8 @@ class _WelcomeBrand extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const MascotAnimationWidget(
-                  assetPath: 'assets/lottie/cat_idle.json',
+                child: MascotAnimationWidget.fromEmotion(
+                  emotion: 'idle',
                   width: 190,
                   height: 190,
                 ),

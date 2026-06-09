@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../core/animation_service.dart';
 import '../layout/main_layout_screen.dart';
 
 /// Pantalla de victoria que aparece al completar una leccion.
@@ -28,7 +29,7 @@ class LessonCompleteScreen extends StatelessWidget {
                     SizedBox(
                       width: 240,
                       height: 240,
-                      child: Lottie.asset('assets/lottie/Cat_in_a_rocket.json', fit: BoxFit.contain),
+                      child: Lottie.asset(AnimationService.instance.getAssetForEmotion('rocket'), fit: BoxFit.contain),
                     ),
                     const SizedBox(height: 24),
                     const Text(

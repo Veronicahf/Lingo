@@ -51,122 +51,131 @@ class _SpeakingWidgetState extends State<SpeakingWidget> {
   Widget build(BuildContext context) {
     final String title = _resolveTitle(widget.payload);
     final String sentence = _resolveSentence(widget.payload);
+    final double mascotSize = MediaQuery.of(context).size.height * 0.25;
+    final double micSize = MediaQuery.of(context).size.height * 0.13;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          MascotAnimationWidget.fromEmotion(
-            emotion: widget.mascotEmotion,
-            width: 160,
-            height: 160,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 28),
-          _CharacterAndBubble(sentence: sentence),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: () => AudioService.instance.speak(widget.payload),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1B2B36),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF364955), width: 2),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.volume_up_rounded, color: Color(0xFF59C8FF), size: 22),
-                  SizedBox(width: 8),
-                  Text(
-                    'ESCUCHAR FRASE',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: mascotSize,
+              child: MascotAnimationWidget.fromEmotion(
+                emotion: widget.mascotEmotion,
+                width: mascotSize,
+                height: mascotSize,
               ),
             ),
-          ),
-          if (_textoDetectado.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
-              _textoDetectado,
-              textAlign: TextAlign.center,
+              title,
               style: const TextStyle(
-                color: Color(0xFF9FE33A),
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
               ),
             ),
-          ],
-          const Spacer(),
-          Center(
-            child: GestureDetector(
-              onTapDown: (_) {
-                setState(() {
-                  _isMicPressed = true;
-                });
-                SpeechService.instance.startListening((text) {
-                  if (!mounted) {
-                    return;
-                  }
-
-                  setState(() {
-                    _textoDetectado = text;
-                  });
-                });
-              },
-              onTapCancel: _finishListening,
-              onTapUp: (_) => _finishListening(),
-              child: AnimatedScale(
-                scale: _isMicPressed ? 0.93 : 1,
-                duration: const Duration(milliseconds: 120),
-                curve: Curves.easeOut,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  width: 104,
-                  height: 104,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF59C8FF),
-                    borderRadius: BorderRadius.circular(26),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0xFF1B8FC2),
-                        offset: Offset(0, 8),
-                        blurRadius: 0,
+            const SizedBox(height: 28),
+            _CharacterAndBubble(sentence: sentence),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () => AudioService.instance.speak(widget.payload),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B2B36),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF364955), width: 2),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.volume_up_rounded, color: Color(0xFF59C8FF), size: 22),
+                    SizedBox(width: 8),
+                    Text(
+                      'ESCUCHAR FRASE',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
                       ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.mic_rounded,
-                    color: Colors.white,
-                    size: 54,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_textoDetectado.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                _textoDetectado,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF9FE33A),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Center(
+              child: GestureDetector(
+                onTapDown: (_) {
+                  setState(() {
+                    _isMicPressed = true;
+                  });
+                  SpeechService.instance.startListening((text) {
+                    if (!mounted) {
+                      return;
+                    }
+
+                    setState(() {
+                      _textoDetectado = text;
+                    });
+                  });
+                },
+                onTapCancel: _finishListening,
+                onTapUp: (_) => _finishListening(),
+                child: AnimatedScale(
+                  scale: _isMicPressed ? 0.93 : 1,
+                  duration: const Duration(milliseconds: 120),
+                  curve: Curves.easeOut,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 120),
+                    width: micSize,
+                    height: micSize,
+                    decoration: BoxDecoration(
+                      color: _isMicPressed ? const Color(0xFFFF3B3B) : const Color(0xFF59C8FF),
+                      borderRadius: BorderRadius.circular(micSize * 0.25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _isMicPressed
+                              ? const Color(0xFFB80000).withOpacity(0.85)
+                              : const Color(0xFF1B8FC2).withOpacity(0.85),
+                          offset: const Offset(0, 8),
+                          blurRadius: 0,
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      _isMicPressed ? Icons.radio_button_checked_rounded : Icons.mic_rounded,
+                      color: Colors.white,
+                      size: micSize * 0.52,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 28),
-          _SkipButton(
-            onTap: () => widget.onSkip?.execute(context),
-          ),
-        ],
+            const SizedBox(height: 28),
+            _SkipButton(
+              onTap: () => widget.onSkip?.execute(context),
+            ),
+          ],
+        ),
       ),
     );
   }

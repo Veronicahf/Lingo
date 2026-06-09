@@ -20,9 +20,17 @@ class LessonViewModel extends BaseViewModel {
   bool _isChecking = false;
   bool _isCorrect = false;
   String _selectedAnswer = '';
+  int _currentHearts = 5;
+  bool _isPracticeMode = false;
 
   /// Lista de actividades cargadas para la leccion actual.
   List<LessonActivity> get activities => _activities;
+
+  /// Corazones disponibles del usuario.
+  int get currentHearts => _currentHearts;
+
+  /// Indica si el usuario se quedo sin vidas.
+  bool get isGameOver => _currentHearts <= 0;
 
   /// Indice de la actividad visible en este momento.
   int get currentIndex => _currentIndex;
@@ -52,34 +60,52 @@ class LessonViewModel extends BaseViewModel {
   double get progress => _currentIndex / _activities.length;
 
   /// Actividad que debe renderizarse en la pantalla.
-  LessonActivity get currentActivity => _activities[_currentIndex];
+  LessonActivity get currentActivity {
+    if (_activities.isEmpty || _currentIndex >= _activities.length) {
+      throw StateError('No hay actividades disponibles para el índice $_currentIndex.');
+    }
+    return _activities[_currentIndex];
+  }
+
+  /// Actividad actual o null si la lista esta vacia o el indice es invalido.
+  LessonActivity? get currentActivityOrNull {
+    if (_activities.isEmpty || _currentIndex >= _activities.length) {
+      return null;
+    }
+    return _activities[_currentIndex];
+  }
 
   /// Carga las actividades mock del motor de leccion y reinicia el estado de juego.
-  void loadLesson() {
+  Future<void> loadLesson() async {
     resetState();
     _activities = List<LessonActivity>.unmodifiable(MockDatabase.instance.lessonActivities);
     _currentIndex = 0;
+    _isPracticeMode = false;
     _isChecking = false;
     _isCorrect = false;
     _selectedAnswer = '';
+    _currentHearts = await _userRepository.getCurrentHearts();
     notifyListeners();
   }
 
-  /// Carga actividades filtradas para las practicas (Hablar o Escuchar).
+  /// Carga actividades filtradas por categoria para el centro de practica.
   ///
-  /// Filtra las actividades mock por tipo y reinicia el estado de juego.
-  /// Para Hablar: carga solo actividades de tipo [ActivityType.repeat]
-  /// Para Escuchar: carga solo actividades de tipo [ActivityType.listenSelect]
-  void loadPracticeLesson(ActivityType type) {
+  /// Filtra el practicePool de MockDatabase por la categoria indicada y las mezcla
+  /// para ofrecer variedad en cada sesion de practica.
+  Future<void> loadPracticeLesson(String category) async {
     resetState();
-    final List<LessonActivity> allActivities = MockDatabase.instance.lessonActivities;
-    _activities = List<LessonActivity>.unmodifiable(
-      allActivities.where((activity) => activity.type == type).toList(),
-    );
+    final List<LessonActivity> allActivities = MockDatabase.instance.practicePool;
+    final List<LessonActivity> filtered = allActivities
+        .where((activity) => activity.category?.toLowerCase() == category.toLowerCase())
+        .toList()
+      ..shuffle();
+    _activities = List<LessonActivity>.unmodifiable(filtered);
     _currentIndex = 0;
+    _isPracticeMode = true;
     _isChecking = false;
     _isCorrect = false;
     _selectedAnswer = '';
+    _currentHearts = await _userRepository.getCurrentHearts();
     notifyListeners();
   }
 
@@ -99,6 +125,12 @@ class LessonViewModel extends BaseViewModel {
     notifyListeners();
 
     _isCorrect = userAnswer.trim().toLowerCase() == currentActivity.correctAnswer.trim().toLowerCase();
+
+    if (!_isCorrect && _currentHearts > 0) {
+      _currentHearts--;
+      await _userRepository.decrementHearts();
+    }
+
     _isChecking = false;
     notifyListeners();
   }
@@ -120,7 +152,21 @@ class LessonViewModel extends BaseViewModel {
       return;
     }
 
-    // Última actividad: marca como completada
+    // Última actividad en modo practica: recarga con shuffle para loop infinito
+    if (_isPracticeMode) {
+      final List<LessonActivity> refreshed = List<LessonActivity>.from(_activities)..shuffle();
+      _activities = List<LessonActivity>.unmodifiable(refreshed);
+      _currentIndex = 0;
+      _isChecking = false;
+      _isCorrect = false;
+      _selectedAnswer = '';
+      await _userRepository.addXpToCurrentUser(1);
+      notifyListeners();
+      _playAudioIfNeeded(currentActivity);
+      return;
+    }
+
+    // Última actividad de leccion normal: marca como completada
     _isChecking = false;
     _isCorrect = false;
     _selectedAnswer = '';

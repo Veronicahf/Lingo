@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/animation_service.dart';
 import '../../core/under_construction_command.dart';
 import '../../models/streak_calendar_day.dart';
 import '../../viewmodels/streak_viewmodel.dart';
@@ -162,8 +163,8 @@ class _PersonalStreakTab extends StatelessWidget {
             border: Border.all(color: const Color(0xFF27323B), width: 2),
           ),
           alignment: Alignment.center,
-          child: const MascotAnimationWidget(
-            assetPath: 'assets/lottie/cat_sleeping.json',
+          child: MascotAnimationWidget.fromEmotion(
+            emotion: 'sleeping',
             width: 220,
             height: 220,
           ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/under_construction_command.dart';
-import '../../models/lesson_activity.dart';
 import '../../viewmodels/lesson_viewmodel.dart';
 import '../lessons/active_lesson_screen.dart';
 import '../../core/audio_service.dart';
@@ -39,7 +38,7 @@ class PracticeCenterScreen extends StatelessWidget {
             buttonLabel: 'COMENZAR',
             onTap: () => _navigateToPracticeLessonScreen(
               context,
-              ActivityType.repeat,
+              'speaking',
             ),
           ),
           const SizedBox(height: 16),
@@ -51,26 +50,32 @@ class PracticeCenterScreen extends StatelessWidget {
             buttonLabel: 'REPRODUCIR',
             onTap: () => _navigateToPracticeLessonScreen(
               context,
-              ActivityType.listenSelect,
+              'listening',
             ),
           ),
           const SizedBox(height: 16),
           _PracticeCard(
-            title: 'Errores',
-            subtitle: 'Repasa tus fallos recientes',
-            icon: Icons.cached_rounded,
+            title: 'Gramática',
+            subtitle: 'Refuerza tus estructuras gramaticales',
+            icon: Icons.text_fields_rounded,
             color: const Color(0xFFFFA31A),
-            buttonLabel: 'VER REPASO',
-            onTap: () => _showErrorsSnackBar(context),
+            buttonLabel: 'PRACTICAR',
+            onTap: () => _navigateToPracticeLessonScreen(
+              context,
+              'grammar',
+            ),
           ),
           const SizedBox(height: 16),
           _PracticeCard(
-            title: 'Palabras',
-            subtitle: 'Amplía vocabulario con tarjetas',
+            title: 'Traducción',
+            subtitle: 'Mejora tu vocabulario con ejercicios',
             icon: Icons.style_rounded,
             color: const Color(0xFF58B8FF),
-            buttonLabel: 'PRACTICAR',
-            isExpandable: true,
+            buttonLabel: 'TRADUCIR',
+            onTap: () => _navigateToPracticeLessonScreen(
+              context,
+              'translation',
+            ),
           ),
           const SizedBox(height: 16),
           _PracticeCard(
@@ -88,12 +93,12 @@ class PracticeCenterScreen extends StatelessWidget {
 
   void _navigateToPracticeLessonScreen(
     BuildContext context,
-    ActivityType type,
+    String category,
   ) {
     Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => _PracticeLessonScreen(activityType: type),
+        builder: (_) => _PracticeLessonScreen(category: category),
       ),
     );
   }
@@ -123,9 +128,9 @@ class PracticeCenterScreen extends StatelessWidget {
 
 /// Pantalla wrapper para cargar una lección de práctica con actividades filtradas.
 class _PracticeLessonScreen extends StatefulWidget {
-  const _PracticeLessonScreen({required this.activityType});
+  const _PracticeLessonScreen({required this.category});
 
-  final ActivityType activityType;
+  final String category;
 
   @override
   State<_PracticeLessonScreen> createState() => _PracticeLessonScreenState();
@@ -138,7 +143,7 @@ class _PracticeLessonScreenState extends State<_PracticeLessonScreen> {
   void initState() {
     super.initState();
     _viewModel = LessonViewModel();
-    _viewModel.loadPracticeLesson(widget.activityType);
+    _viewModel.loadPracticeLesson(widget.category);
   }
 
   @override

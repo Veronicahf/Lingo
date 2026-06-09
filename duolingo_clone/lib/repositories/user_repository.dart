@@ -50,6 +50,20 @@ class MockUserRepository {
     return newUser;
   }
 
+  /// Devuelve los corazones del usuario activo.
+  Future<int> getCurrentHearts() async {
+    return MockDatabase.instance.currentUser?.hearts ?? 0;
+  }
+
+  /// Resta un corazón al usuario activo y persiste el cambio.
+  Future<void> decrementHearts() async {
+    final currentUser = MockDatabase.instance.currentUser;
+    if (currentUser == null || currentUser.hearts <= 0) return;
+    final updatedUser = currentUser.copyWith(hearts: currentUser.hearts - 1);
+    MockDatabase.instance.upsertUser(updatedUser);
+    MockDatabase.instance.setActiveUser(updatedUser.id);
+  }
+
   /// Suma experiencia al usuario actualmente activo.
   Future<User?> addXpToCurrentUser(int xp) async {
     final User? currentUser = MockDatabase.instance.currentUser;
