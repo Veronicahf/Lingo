@@ -11,7 +11,13 @@ import 'lesson_factory.dart';
 /// [LessonFactory], mientras escucha al [LessonViewModel] para pintar progreso y validar respuestas.
 class ActiveLessonScreen extends StatefulWidget {
   /// Crea la pantalla de leccion activa.
-  const ActiveLessonScreen({super.key});
+  ///
+  /// Si [viewModel] se proporciona, se utiliza ese ViewModel; de lo contrario, se crea uno nuevo
+  /// y se carga la lección completa mediante [loadLesson()].
+  const ActiveLessonScreen({super.key, this.viewModel});
+
+  /// ViewModel opcional para inyectar desde otra pantalla.
+  final LessonViewModel? viewModel;
 
   @override
   State<ActiveLessonScreen> createState() => _ActiveLessonScreenState();
@@ -19,8 +25,8 @@ class ActiveLessonScreen extends StatefulWidget {
 
 /// Estado interno de [ActiveLessonScreen] que mantiene vivo el ViewModel de leccion.
 class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
-  late final LessonViewModel _viewModel = LessonViewModel();
-  late final Command<void> _skipRepeatCommand = _SkipRepeatCommand(_viewModel);
+  late final LessonViewModel _viewModel;
+  late final Command<void> _skipRepeatCommand;
   String _currentAnswer = '';
   String? _lastActivityId;
 
@@ -33,7 +39,16 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   @override
   void initState() {
     super.initState();
-    _viewModel.loadLesson();
+    
+    // Usar el ViewModel inyectado o crear uno nuevo
+    _viewModel = widget.viewModel ?? LessonViewModel();
+    _skipRepeatCommand = _SkipRepeatCommand(_viewModel);
+    
+    // Si se creó un nuevo ViewModel, cargar la lección completa
+    if (widget.viewModel == null) {
+      _viewModel.loadLesson();
+    }
+    
     _viewModel.addListener(_syncCurrentAnswerWithActivity);
     _viewModel.addListener(_onLessonComplete);
   }
@@ -42,7 +57,12 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
   void dispose() {
     _viewModel.removeListener(_syncCurrentAnswerWithActivity);
     _viewModel.removeListener(_onLessonComplete);
-    _viewModel.dispose();
+    
+    // Solo disponer si fue creado aquí (no inyectado)
+    if (widget.viewModel == null) {
+      _viewModel.dispose();
+    }
+    
     super.dispose();
   }
 
