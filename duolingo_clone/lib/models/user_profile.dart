@@ -42,7 +42,7 @@ class UserProfile {
   /// Construye un [UserProfile] desde un mapa JSON devuelto por la API.
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      username: json['username'] as String? ?? 'Estudiante',
+      username: json['name'] as String? ?? json['username'] as String? ?? json['displayName'] as String? ?? 'Estudiante',
       avatarUrl: json['avatarUrl'] as String? ?? 'https://ui-avatars.com/api/?name=Estudiante',
       streakDays: json['streakDays'] as int? ?? 0,
       gems: json['gems'] as int? ?? 0,

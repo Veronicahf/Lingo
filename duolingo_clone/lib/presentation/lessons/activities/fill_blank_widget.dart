@@ -36,7 +36,7 @@ class _FillBlankWidgetState extends State<FillBlankWidget> {
   @override
   void initState() {
     super.initState();
-    _options = _buildOptions(widget.payload);
+    _options = (widget.payload['options'] as List?)?.map((e) => e.toString()).toList() ?? [];
   }
 
   @override
@@ -120,7 +120,7 @@ class _FillBlankWidgetState extends State<FillBlankWidget> {
                     setState(() {
                       _selectedWord = word;
                     });
-                    widget.onAnswerSelected?.call(_buildCurrentSentence(word));
+                    widget.onAnswerSelected?.call(word);
                   },
                 ),
             ],
@@ -138,15 +138,6 @@ class _FillBlankWidgetState extends State<FillBlankWidget> {
 
     final String sentence = _resolveTitle(payload);
     return <String>[sentence, ''];
-  }
-
-  List<String> _buildOptions(Map<String, dynamic> payload) {
-    final dynamic options = payload['options'] ?? payload['choices'];
-    if (options is List) {
-      return options.whereType<String>().toList(growable: false);
-    }
-
-    return const <String>[];
   }
 
   String _resolveTitle(Map<String, dynamic> payload) {

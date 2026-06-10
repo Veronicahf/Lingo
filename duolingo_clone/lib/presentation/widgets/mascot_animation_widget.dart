@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -47,6 +48,14 @@ class MascotAnimationWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: const Icon(Icons.pets, color: Colors.white54, size: 64),
+      );
+    }
+
     return Lottie.asset(
       assetPath,
       width: width,

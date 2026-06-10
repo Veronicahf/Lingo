@@ -134,7 +134,9 @@ class _SelectTranslationWidgetState extends State<SelectTranslationWidget> {
   }
 
   String _resolveTextToTranslate() {
-    final dynamic text = widget.payload['textToTranslate'];
+    final dynamic text = widget.payload['sentence']
+        ?? widget.payload['text']
+        ?? widget.payload['textToTranslate'];
     if (text is String && text.trim().isNotEmpty) {
       return text.trim();
     }

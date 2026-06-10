@@ -33,6 +33,8 @@ Future<void> showFeedbackSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    isDismissible: false,
+    enableDrag: false,
     backgroundColor: Colors.transparent,
     builder: (ctx) {
       return _FeedbackSheetContent(
@@ -109,68 +111,7 @@ class _FeedbackSheetContentState extends State<_FeedbackSheetContent> with Ticke
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!isCorrect && widget.isGameOver) ...[
-                const SizedBox(height: 24),
-                Center(
-                  child: MascotAnimationWidget.fromEmotion(
-                    emotion: 'sad',
-                    width: 180,
-                    height: 180,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  '¡Te quedaste sin vidas!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'No te preocupes, las vidas se regeneran con el tiempo.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFF9AA7B1),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  },
-                  child: Container(
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFB94A4A),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0xFF7A1E1E),
-                          offset: Offset(0, 8),
-                          blurRadius: 0,
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'SALIR',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ] else ...[
-                Container(
+              Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: topBg,
@@ -330,45 +271,45 @@ class _FeedbackSheetContentState extends State<_FeedbackSheetContent> with Ticke
                   ),
                 ),
                 const SizedBox(height: 14),
-                if (isCorrect)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      if (widget.onContinue != null) {
-                        widget.onContinue!();
-                      }
-                    },
-                    child: Container(
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryGreenShadow.withOpacity(0.85),
-                            offset: const Offset(0, 8),
-                            blurRadius: 0,
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'CONTINUAR',
-                        style: TextStyle(
-                          color: Color(0xFF09220A),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.0,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (widget.onContinue != null) {
+                      widget.onContinue!();
+                    }
+                  },
+                  child: Container(
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: isCorrect ? primaryGreen : wrongAccent,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isCorrect
+                              ? primaryGreenShadow.withOpacity(0.85)
+                              : wrongTitle.withOpacity(0.85),
+                          offset: const Offset(0, 8),
+                          blurRadius: 0,
                         ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'CONTINUAR',
+                      style: TextStyle(
+                        color: isCorrect ? const Color(0xFF09220A) : Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
                       ),
                     ),
                   ),
+                ),
               ],
-            ],
+            ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
