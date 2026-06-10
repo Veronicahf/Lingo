@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:crypto/crypto.dart';
 
+import '../core/api_client.dart';
 import '../core/mock_database.dart';
 import '../models/challenge.dart';
 import '../models/dtos/user_dto.dart';
@@ -46,37 +49,39 @@ class MockUserRepository {
 
   // ---------- Registro / Autenticación ----------
 
-  /// Registra un usuario nuevo a partir de las respuestas del onboarding y activa la sesion.
+  /// Registra un usuario nuevo a partir de las respuestas del onboarding.
   ///
-  /// TODO API:
-  /// ```dart
-  /// final response = await ApiClient.instance.post('/auth/register', data: {
-  ///   'onboardingAnswers': onboardingAnswers,
-  /// });
-  /// final user = User.fromJson(response.data);
-  /// return user;
-  /// ```
+  /// Envía el [courseId] al backend. El [_AuthInterceptor] de [ApiClient]
+  /// inyecta automáticamente el token `Authorization: Bearer <token>` de Firebase
+  /// en cada petición, por lo que el endpoint recibe la identidad del usuario sin
+  /// necesidad de enviar credenciales en el body.
+  ///
+  /// Si el backend responde con 409 Conflict, significa que el usuario ya existe
+  /// (ej. login social de Google de un usuario previamente registrado). En ese
+  /// caso se reutiliza el flujo: se llama a POST /auth/login para sincronizar
+  /// la sesión en el servidor y se devuelven los datos del usuario existente.
+  /// Esto evita verificar previamente la existencia del usuario y unifica el
+  /// flujo de Login Social (que siempre llama a registerNewUser en el ViewModel).
   Future<User> registerNewUser({required List<String> onboardingAnswers}) async {
-    final String courseId = _resolveCourseId(onboardingAnswers.isNotEmpty ? onboardingAnswers.first : '');
-    final Course? course = MockDatabase.instance.findCourseById(courseId);
-    final String userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
-    final String email = '${courseId}_$userId@lingo.local';
-    final String name = 'Aprendiz de ${course?.name ?? 'Inglés'}';
-
-    final user = User(
-      id: userId,
-      email: email,
-      passwordHash: _hashPassword('123456'),
-      name: name,
-      avatarUrl: 'https://example.com/avatar-onboarding-$courseId.png',
-      streakDays: 0,
-      gems: 50,
-      totalXp: 0,
-      hearts: 5,
-      currentCourseId: course?.id ?? 'course_en',
+    final String courseId = _resolveCourseId(
+      onboardingAnswers.isNotEmpty ? onboardingAnswers.first : '',
     );
 
-    return registerUser(user);
+    try {
+      final response = await ApiClient.instance.post(
+        '/auth/register',
+        data: {'courseId': courseId},
+      );
+
+      return User.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        debugPrint('⚠️ Usuario ya existe en backend (409). Tratando como Login...');
+        final loginResponse = await ApiClient.instance.post('/auth/login');
+        return User.fromJson(loginResponse.data as Map<String, dynamic>);
+      }
+      rethrow;
+    }
   }
 
   /// Registra un usuario ya construido y activa la sesion en memoria.
@@ -92,32 +97,16 @@ class MockUserRepository {
     return newUser;
   }
 
-  /// Verifica credenciales contra la base en memoria y activa la sesion si coinciden.
+  /// Verifica la identidad del usuario contra el backend.
   ///
-  /// TODO API:
-  /// ```dart
-  /// final response = await ApiClient.instance.post('/auth/login', data: {
-  ///   'email': email,
-  ///   'password': password,
-  /// });
-  /// final user = User.fromJson(response.data);
-  /// return user;
-  /// ```
+  /// El ViewModel ya autenticó al usuario con Firebase Auth, por lo que esta
+  /// llamada solo envía un POST vacío. El [_AuthInterceptor] de [ApiClient]
+  /// inyecta automáticamente el token `Authorization: Bearer <token>` de Firebase,
+  /// y el backend valida el token y responde con los datos del usuario.
   Future<User?> authenticate(String email, String password) async {
-    final normalizedEmail = email.trim().toLowerCase();
-    final normalizedPassword = password.trim();
+    final response = await ApiClient.instance.post('/auth/login');
 
-    for (final user in MockDatabase.instance.users) {
-      final bool emailMatches = user.email.trim().toLowerCase() == normalizedEmail;
-      final bool passwordMatches = user.passwordHash == normalizedPassword;
-
-      if (emailMatches && passwordMatches) {
-        MockDatabase.instance.setActiveUser(user.id);
-        return user;
-      }
-    }
-
-    return null;
+    return User.fromJson(response.data as Map<String, dynamic>);
   }
 
   // ---------- Corazones ----------
@@ -188,6 +177,7 @@ class MockUserRepository {
   /// return User.fromJson(response.data);
   /// ```
   Future<User?> saveUserProgress(UserDTO userDto) async {
+    debugPrint('💾 Guardando progreso del usuario en Spring Boot...');
     final User? existingUser = MockDatabase.instance.findUserById(userDto.userId);
     if (existingUser == null) return null;
 
@@ -208,42 +198,18 @@ class MockUserRepository {
 
   // ---------- Perfil ----------
 
-  /// Obtiene el perfil del usuario.
+  /// Obtiene el perfil del usuario desde la API.
   ///
-  /// TODO API:
-  /// ```dart
-  /// final response = await ApiClient.instance.get('/users/$uid/profile');
-  /// return UserProfile.fromJson(response.data);
-  /// ```
+  /// El [_AuthInterceptor] de [ApiClient] inyecta automáticamente
+  /// `Authorization: Bearer <token>` de Firebase en cada petición,
+  /// por lo que el backend identifica al usuario sin necesidad de
+  /// enviar la uid en el header — la uid en la URL es solo redundante.
   Future<UserProfile> getUserProfile([String uid = '']) async {
-    final currentUser = uid.isNotEmpty
-        ? MockDatabase.instance.findUserById(uid)
-        : MockDatabase.instance.currentUser;
-    final currentCourse = currentUser == null
-        ? null
-        : MockDatabase.instance.findCourseById(currentUser.currentCourseId);
+    debugPrint('👤 Solicitando perfil del usuario...');
+    final resolvedUid = uid.isNotEmpty ? uid : getCurrentUserId();
+    final response = await ApiClient.instance.get('/users/$resolvedUid/profile');
 
-    if (currentUser == null) {
-      return const UserProfile(
-        username: 'Invitado',
-        avatarUrl: '',
-        streakDays: 0,
-        gems: 0,
-        hearts: 0,
-        leagueName: 'Sin curso activo',
-        totalXp: 0,
-      );
-    }
-
-    return UserProfile(
-      username: currentUser.name,
-      avatarUrl: currentUser.avatarUrl,
-      streakDays: currentUser.streakDays,
-      gems: currentUser.gems,
-      hearts: currentUser.hearts,
-      leagueName: currentCourse?.name ?? 'Sin curso activo',
-      totalXp: currentUser.totalXp,
-    );
+    return UserProfile.fromJson(response.data as Map<String, dynamic>);
   }
 
   // ---------- Desafíos ----------

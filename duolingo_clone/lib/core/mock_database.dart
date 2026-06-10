@@ -1,28 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/course_model.dart';
 import '../models/lesson_activity.dart';
 import '../models/more_option.dart';
 import '../models/onboarding_question.dart';
 import '../models/user_model.dart';
-
-/// Representa un curso disponible dentro del catálogo local.
-class Course {
-  /// Crea un curso con su identificador y metadata visible.
-  const Course({
-    required this.id,
-    required this.name,
-    required this.description,
-  });
-
-  /// Identificador unico del curso.
-  final String id;
-
-  /// Nombre visible del curso.
-  final String name;
-
-  /// Descripcion corta del curso.
-  final String description;
-}
 
 /// Representa una publicacion simple del feed local.
 class NewsPost {

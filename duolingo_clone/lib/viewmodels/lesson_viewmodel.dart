@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../core/base_viewmodel.dart';
 import '../core/audio_service.dart';
 import '../core/service_locator.dart';
@@ -34,7 +36,7 @@ class LessonViewModel extends BaseViewModel {
   bool _isChecking = false;
   bool _isCorrect = false;
   String _selectedAnswer = '';
-  int _currentHearts = 5;
+  int _currentHearts = 999;
   bool _isPracticeMode = false;
   LessonState _state = LessonState.ready;
   String? _currentNodeId;
@@ -104,15 +106,17 @@ class LessonViewModel extends BaseViewModel {
   ///
   /// [nodeId] es el identificador del [LessonNode] en el mapa.
   Future<void> loadLesson(String nodeId) async {
+    debugPrint('🎮 Iniciando UI de la lección para el nodo $nodeId...');
     _setState(LessonState.loading);
     _resetGameState();
     _currentNodeId = nodeId;
 
     try {
       final List<LessonActivity> nodeActivities =
-          ServiceLocator.courseRepository.getActivitiesForNode(nodeId);
+          await ServiceLocator.courseRepository.getActivitiesForNode(nodeId);
 
       if (nodeActivities.isEmpty) {
+        debugPrint('⚠️ No se recibieron actividades del backend.');
         _setState(LessonState.error);
         return;
       }
@@ -122,7 +126,9 @@ class LessonViewModel extends BaseViewModel {
       _isPracticeMode = false;
       _currentHearts = await _userRepository.getCurrentHearts();
       _setState(LessonState.ready);
+      debugPrint('✅ Lección cargada con ${nodeActivities.length} actividades.');
     } catch (_) {
+      debugPrint('❌ Error al cargar la lección.');
       _setState(LessonState.error);
     }
   }
@@ -135,7 +141,7 @@ class LessonViewModel extends BaseViewModel {
 
     try {
       final List<LessonActivity> allActivities =
-          ServiceLocator.courseRepository.getPracticePool();
+          await ServiceLocator.courseRepository.getPracticePool();
       final List<LessonActivity> filtered = allActivities
           .where((activity) => activity.category?.toLowerCase() == category.toLowerCase())
           .toList()
@@ -144,7 +150,7 @@ class LessonViewModel extends BaseViewModel {
       if (filtered.length < _practiceBufferSize) {
         final List<LessonActivity> lessonActivities =
             List<LessonActivity>.from(
-              ServiceLocator.courseRepository.getLessonActivities(),
+              await ServiceLocator.courseRepository.getLessonActivities(),
             )..shuffle();
         filtered.addAll(
           lessonActivities.take(_practiceBufferSize - filtered.length),
@@ -190,23 +196,13 @@ class LessonViewModel extends BaseViewModel {
     _isCorrect = userAnswer.trim().toLowerCase() ==
         currentActivity.correctAnswer.trim().toLowerCase();
 
-    if (!_isCorrect && _currentHearts > 0) {
-      _currentHearts--;
-      await _userRepository.decrementHearts();
-    }
-
     _isChecking = false;
     notifyListeners();
-
-    final bool isGameOverNow = _currentHearts <= 0;
-    if (isGameOverNow) {
-      _setState(LessonState.gameOver);
-    }
 
     return LessonResponseDTO(
       xpEarned: 0,
       heartsRemaining: _currentHearts,
-      status: isGameOverNow ? LessonStatus.inProgress : LessonStatus.inProgress,
+      status: LessonStatus.inProgress,
     );
   }
 
@@ -247,6 +243,7 @@ class LessonViewModel extends BaseViewModel {
     }
 
     // Lección completada: todas las actividades del nodo resueltas
+    debugPrint('🏁 Lección completada. Sumando XP y marcando éxito...');
     _isChecking = false;
     _isCorrect = false;
     _selectedAnswer = '';

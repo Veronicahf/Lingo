@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/under_construction_command.dart';
 import '../../models/user_profile.dart';
 import '../../viewmodels/profile_viewmodel.dart';
+import '../onboarding/welcome_screen.dart';
 
 /// Pantalla de perfil del usuario que presenta su progreso y métricas principales.
 ///
@@ -47,7 +48,20 @@ class _ProfileViewState extends State<ProfileView> {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
             children: [
-              _ProfileHeader(username: profile?.username ?? 'Perfil'),
+              _ProfileHeader(
+                username: profile?.username ?? 'Perfil',
+                onLogout: () {
+                  _viewModel.logout().then((_) {
+                    if (!context.mounted) return;
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const WelcomeScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  });
+                },
+              ),
               const SizedBox(height: 18),
               _ProfileHeroAvatar(avatarUrl: profile?.avatarUrl ?? ''),
               const SizedBox(height: 18),
@@ -79,9 +93,10 @@ class _ProfileViewState extends State<ProfileView> {
 /// Cabecera superior del perfil con el nombre visible del usuario y accesos rápidos.
 class _ProfileHeader extends StatelessWidget {
   /// Crea la cabecera usando el nombre del usuario.
-  const _ProfileHeader({required this.username});
+  const _ProfileHeader({required this.username, required this.onLogout});
 
   final String username;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +121,11 @@ class _ProfileHeader extends StatelessWidget {
             GestureDetector(
               onTap: () => const UnderConstructionCommand().execute(context),
               child: const Icon(Icons.settings_rounded, color: Color(0xFF9AA7B1), size: 30),
+            ),
+            const SizedBox(width: 18),
+            GestureDetector(
+              onTap: onLogout,
+              child: const Icon(Icons.logout_rounded, color: Color(0xFFE57373), size: 30),
             ),
           ],
         ),

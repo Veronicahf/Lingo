@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../core/base_viewmodel.dart';
 import '../core/service_locator.dart';
 import '../models/lesson_node.dart';
@@ -66,16 +68,20 @@ class HomeViewModel extends BaseViewModel {
   /// Etiqueta del botón principal del modal de energía.
   String get energyButtonLabel => 'Continuar';
 
-  // TODO: Consumir API de Spring Boot cuando el backend del mapa este disponible.
-  /// Carga el mapa de lecciones y notifica a la vista una vez disponible.
+  /// Carga el mapa de lecciones del curso actual y notifica a la vista.
   Future<void> loadLessonNodes() async {
     setLoading(true);
 
     try {
-      final List<LessonNode> rawNodes = await _courseRepository.getLessonNodes();
+      final String courseId = _profile?.currentCourseId ?? 'course_en';
+      final List<LessonNode> rawNodes =
+          await _courseRepository.getLessonNodes(courseId);
+      debugPrint('🗺️ HomeViewModel: ${rawNodes.length} nodos recibidos del backend.');
       _lessonNodes = _applyStrictProgression(rawNodes);
+      notifyListeners();
       setSuccess();
     } catch (error) {
+      debugPrint('❌ Error al cargar mapa de lecciones: $error');
       setError('No se pudo cargar el mapa de lecciones.');
     }
   }
@@ -115,15 +121,18 @@ class HomeViewModel extends BaseViewModel {
     });
   }
 
-  // TODO: Consumir API de Spring Boot cuando el backend de perfil este disponible.
   /// Carga el perfil del usuario que alimenta la top bar del Home.
   Future<void> loadProfile() async {
     setLoading(true);
 
     try {
-      _profile = await _userRepository.getUserProfile();
+      final profile = await _userRepository.getUserProfile();
+      debugPrint('👤 HomeViewModel: perfil recibido — ${profile.username}, ${profile.totalXp} XP, ${profile.streakDays} días.');
+      _profile = profile;
+      notifyListeners();
       setSuccess();
     } catch (error) {
+      debugPrint('❌ Error al cargar perfil del Home: $error');
       setError('No se pudo cargar el perfil del Home.');
     }
   }

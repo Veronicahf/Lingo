@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "317158506100",
+    "project_id": "lingo-fb923",
+    "storage_bucket": "lingo-fb923.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:317158506100:android:97444e6783546612cf1b21",
+        "android_client_info": {
+          "package_name": "com.example.duolingo_clone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "317158506100-6r8lvo6fmhgql3fkk9n2lmhbq3oendsg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.duolingo_clone",
+            "certificate_hash": "b7b81780122bfd8e32e0718ab2d77cb188440466"
+          }
+        },
+        {
+          "client_id": "317158506100-n4lji910t8hkh552sno49833imbdqip7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRdQ_DNZXnrEXzOfZClRGmPQqrqXzmEQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "317158506100-n4lji910t8hkh552sno49833imbdqip7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "317158506100-tsjgn2ph7n6ek3epncdl0id7d4358ft0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.duolingoClone"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
