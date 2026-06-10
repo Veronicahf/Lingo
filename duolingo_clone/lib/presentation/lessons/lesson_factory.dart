@@ -18,6 +18,7 @@ class LessonFactory {
   /// Construye el widget visual asociado a una actividad de leccion.
   static Widget buildActivity(LessonDTO dto, Function(String) onAnswerSelected,
       {Command<void>? onSkip}) {
+    debugPrint('🛠️ FABRICANDO ACTIVIDAD -> TIPO: ${dto.type} | PROMPT: "${dto.prompt}" | ANSWER: "${dto.correctAnswer}"');
     switch (dto.type) {
       case ActivityType.fillBlank:
         return FillBlankWidget(
@@ -43,8 +44,10 @@ class LessonFactory {
         );
       case ActivityType.translateSentence:
         return TranslateSentenceWidget(
-          payload: dto.payload,
+          promptText: dto.prompt,
+          correctAnswerText: dto.correctAnswer,
           mascotEmotion: dto.mascotEmotion,
+          payload: dto.payload,
           onAnswerSelected: onAnswerSelected,
         );
       case ActivityType.unknown:

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/api_client.dart';
+import '../core/service_locator.dart';
 import '../models/course_model.dart';
 import '../models/lesson_activity.dart';
 import '../models/lesson_node.dart';
@@ -31,9 +32,22 @@ class MockCourseRepository {
   Future<List<LessonNode>> getLessonNodes(String courseId) async {
     debugPrint('🗺️ Solicitando mapa de lecciones al backend...');
     final response = await ApiClient.instance.get('/courses/$courseId/nodes');
+    debugPrint('📦 DATA RECIBIDA DEL BACKEND: ${response.data}');
     final list = response.data as List;
     final nodos = list.map((json) => LessonNode.fromJson(json as Map<String, dynamic>)).toList();
     debugPrint('✅ Mapa recibido: ${nodos.length} nodos.');
+
+    final int completed = ServiceLocator.completedLessonsCount;
+    for (int i = 0; i < nodos.length; i++) {
+      if (i < completed) {
+        nodos[i] = nodos[i].copyWith(status: NodeStatus.completed);
+      } else if (i == completed) {
+        nodos[i] = nodos[i].copyWith(status: NodeStatus.active);
+      } else {
+        nodos[i] = nodos[i].copyWith(status: NodeStatus.locked);
+      }
+    }
+
     return nodos;
   }
 
@@ -47,6 +61,7 @@ class MockCourseRepository {
   Future<List<LessonActivity>> getActivitiesForNode(String nodeId) async {
     debugPrint('🧠 Solicitando generación dinámica a la IA para el nodo $nodeId (Esto puede tardar unos segundos)...');
     final response = await ApiClient.instance.get('/nodes/$nodeId/activities');
+    debugPrint('🚨 RAW JSON DE LA IA: ${response.data}');
     final list = response.data as List;
     final actividades = list.map((json) => LessonActivity.fromJson(json as Map<String, dynamic>)).toList();
     debugPrint('🤖 JSON de IA recibido y parseado: ${actividades.length} actividades.');
@@ -54,15 +69,11 @@ class MockCourseRepository {
   }
 
   /// Pool de actividades para el centro de práctica.
-  Future<List<LessonActivity>> getPracticePool() async {
-    final response = await ApiClient.instance.get('/activities/practice-pool');
-    final list = response.data as List;
-    return list.map((json) => LessonActivity.fromJson(json as Map<String, dynamic>)).toList();
-  }
-
-  /// Pool completo de actividades de lección.
-  Future<List<LessonActivity>> getLessonActivities() async {
-    final response = await ApiClient.instance.get('/activities/lesson-pool');
+  ///
+  /// Usa el endpoint dedicado de práctica que genera 10 actividades del mismo tipo.
+  Future<List<LessonActivity>> getPracticePool(String type) async {
+    debugPrint('🧠 Solicitando actividades de práctica tipo $type al motor de IA...');
+    final response = await ApiClient.instance.get('/activities/practice?type=$type');
     final list = response.data as List;
     return list.map((json) => LessonActivity.fromJson(json as Map<String, dynamic>)).toList();
   }

@@ -77,12 +77,25 @@ class LessonActivity {
       resolvedType = ActivityType.unknown;
     }
 
+    final Map<String, dynamic> mapPayload =
+        (json['payload'] is Map) ? Map<String, dynamic>.from(json['payload']) : {};
+
     return LessonActivity(
       id: (json['id'] as String?) ?? '',
       type: resolvedType,
-      prompt: (json['prompt'] as String?) ?? '',
+      prompt: (json['prompt'] as String?) ??
+          (mapPayload['prompt'] as String?) ??
+          (mapPayload['sentence'] as String?) ??
+          (mapPayload['question'] as String?) ??
+          'Traduce esto:',
       payload: json['payload'],
-      correctAnswer: (json['correctAnswer'] as String?) ?? '',
+      correctAnswer: (json['correctAnswer'] as String?) ??
+          (json['correct_answer'] as String?) ??
+          (json['answer'] as String?) ??
+          (mapPayload['correctAnswer'] as String?) ??
+          (mapPayload['targetSentence'] as String?) ??
+          (mapPayload['answer'] as String?) ??
+          'Respuesta de emergencia',
       aiExplanation: json['aiExplanation'] as String?,
       mascotEmotion: (json['mascotEmotion'] as String?) ?? 'idle',
       category: json['category'] as String?,

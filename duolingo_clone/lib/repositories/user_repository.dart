@@ -198,6 +198,13 @@ class MockUserRepository {
 
   // ---------- Perfil ----------
 
+  /// Guarda el progreso de una lección completada en el backend.
+  Future<void> completeLesson(int xp, int gems) async {
+    debugPrint('💾 Enviando progreso de lección: XP=$xp, Gemas=$gems');
+    await ApiClient.instance.post('/users/complete-lesson?xp=$xp&gems=$gems');
+    debugPrint('✅ Progreso guardado en backend.');
+  }
+
   /// Obtiene el perfil del usuario desde la API.
   ///
   /// El [_AuthInterceptor] de [ApiClient] inyecta automáticamente
@@ -208,6 +215,7 @@ class MockUserRepository {
     debugPrint('👤 Solicitando perfil del usuario...');
     final resolvedUid = uid.isNotEmpty ? uid : getCurrentUserId();
     final response = await ApiClient.instance.get('/users/$resolvedUid/profile');
+    debugPrint('📦 DATA RECIBIDA DEL BACKEND: ${response.data}');
 
     return UserProfile.fromJson(response.data as Map<String, dynamic>);
   }

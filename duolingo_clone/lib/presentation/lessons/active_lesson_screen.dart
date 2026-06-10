@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/command.dart';
-import '../../core/service_locator.dart';
 import '../../models/dtos/lesson_dto.dart';
 import '../../viewmodels/lesson_viewmodel.dart';
-import '../registration/registration_screen.dart';
 import '../widgets/mascot_animation_widget.dart';
 import 'feedback_sheet.dart';
 import 'lesson_complete_screen.dart';
@@ -307,23 +305,12 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
                           correctAnswer: lessonActivity.correctAnswer,
                           aiExplanation: lessonActivity.aiExplanation,
                           isGameOver: _viewModel.isGameOver,
-                          onContinue: _viewModel.isCorrect
-                              ? () {
-                                  _viewModel.nextActivity();
-                                }
-                              : null,
+                          onContinue: () {
+                            if (mounted) {
+                              _viewModel.nextActivity();
+                            }
+                          },
                         );
-
-                        if (!mounted) return;
-                        if (ServiceLocator.registrationRequired &&
-                            _viewModel.lessonsCompleted >= 2) {
-                          Navigator.push<void>(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (_) => const RegistrationScreen(),
-                            ),
-                          );
-                        }
                       },
                 child: Container(
                   height: 72,

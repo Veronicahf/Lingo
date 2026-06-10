@@ -39,7 +39,30 @@ class LessonNode {
   ///
   /// El campo [activities] se inicializa vacío si no viene en la respuesta;
   /// el ViewModel debe cargar las actividades llamando a [getActivitiesForNode].
+  ///
+  /// La posición puede venir como campos separados [positionX], [positionY]
+  /// o como un string "[x],[y]" en el campo [coordinates].
   factory LessonNode.fromJson(Map<String, dynamic> json) {
+    Offset parsePosition() {
+      // Prioridad 1: campos numéricos separados
+      final x = (json['positionX'] as num?)?.toDouble();
+      final y = (json['positionY'] as num?)?.toDouble();
+      if (x != null && y != null) return Offset(x, y);
+
+      // Prioridad 2: string "x,y" en el campo coordinates
+      final coords = json['coordinates'] as String?;
+      if (coords != null) {
+        final parts = coords.split(',');
+        if (parts.length == 2) {
+          final cx = double.tryParse(parts[0].trim());
+          final cy = double.tryParse(parts[1].trim());
+          if (cx != null && cy != null) return Offset(cx, cy);
+        }
+      }
+
+      return Offset.zero;
+    }
+
     return LessonNode(
       id: json['id'] as String,
       title: json['title'] as String? ?? '',
@@ -51,10 +74,7 @@ class LessonNode {
         (s) => s.name == json['status'],
         orElse: () => NodeStatus.locked,
       ),
-      position: Offset(
-        (json['positionX'] as num?)?.toDouble() ?? 0,
-        (json['positionY'] as num?)?.toDouble() ?? 0,
-      ),
+      position: parsePosition(),
       activities: const [],
     );
   }

@@ -9,19 +9,27 @@ import '../../widgets/mascot_animation_widget.dart';
 /// En el medio se renderiza el area de respuesta con renglones visuales. En la parte inferior
 /// aparece el banco de palabras, y tocar un bloque lo mueve entre el banco y la respuesta.
 class TranslateSentenceWidget extends StatefulWidget {
-  /// Crea el widget de traduccion de oracion con su payload de datos.
+  /// Crea el widget de traduccion de oracion.
   const TranslateSentenceWidget({
     super.key,
-    required this.payload,
+    required this.promptText,
+    required this.correctAnswerText,
     required this.mascotEmotion,
+    this.payload,
     this.onAnswerSelected,
   });
 
-  /// Datos de la actividad, normalmente con la oracion objetivo y el banco de palabras.
-  final Map<String, dynamic> payload;
+  /// Oración en el idioma origen que el usuario debe traducir.
+  final String promptText;
+
+  /// Traducción correcta esperada, usada para construir el banco de palabras.
+  final String correctAnswerText;
 
   /// Emoción de la mascota asociada a esta actividad.
   final String mascotEmotion;
+
+  /// Payload dinámico con datos específicos de la actividad.
+  final Map<String, dynamic>? payload;
 
   /// Callback que reporta la respuesta construida por el usuario.
   final ValueChanged<String>? onAnswerSelected;
@@ -38,13 +46,17 @@ class _TranslateSentenceWidgetState extends State<TranslateSentenceWidget> {
   @override
   void initState() {
     super.initState();
-    _availableWords = _buildAvailableWords(widget.payload);
+    _availableWords = _buildAvailableWords();
     _responseWords = <String>[];
   }
 
   @override
   Widget build(BuildContext context) {
-    final String promptSentence = _resolvePromptSentence(widget.payload);
+    final Map<String, dynamic> mapPayload = widget.payload is Map
+        ? Map<String, dynamic>.from(widget.payload!)
+        : {};
+    final String sentenceToTranslate =
+        mapPayload['sentence'] ?? mapPayload['text'] ?? 'Oración faltante';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
@@ -57,7 +69,9 @@ class _TranslateSentenceWidgetState extends State<TranslateSentenceWidget> {
             height: 128,
           ),
           const SizedBox(height: 8),
-          _SentenceBubble(sentence: promptSentence),
+          _SentenceBubble(
+            sentence: sentenceToTranslate,
+          ),
           const SizedBox(height: 22),
           Expanded(
             child: Column(
@@ -133,49 +147,14 @@ class _TranslateSentenceWidgetState extends State<TranslateSentenceWidget> {
     );
   }
 
-  List<String> _buildAvailableWords(Map<String, dynamic> payload) {
-    final dynamic bankWords = payload['bankWords'];
-    if (bankWords is List) {
-      return bankWords.whereType<String>().toList(growable: true);
-    }
-
-    final String sentence = _resolveCorrectSentence(payload);
-    final List<String> words = sentence
+  List<String> _buildAvailableWords() {
+    if (widget.correctAnswerText.isEmpty) return ['Error:', 'Respuesta', 'vacía'];
+    final words = widget.correctAnswerText
         .split(RegExp(r'\s+'))
-        .map((word) => word.trim())
-        .where((word) => word.isNotEmpty)
-        .toList(growable: true);
-
-    final dynamic extraWords = payload['extraWords'];
-    if (extraWords is List) {
-      words.addAll(extraWords.whereType<String>());
-    }
-
+        .where((w) => w.isNotEmpty)
+        .toList();
+    words.shuffle();
     return words;
-  }
-
-  String _resolvePromptSentence(Map<String, dynamic> payload) {
-    final dynamic sentence = payload['sentence'] ?? payload['prompt'] ?? payload['englishSentence'];
-    if (sentence is String && sentence.trim().isNotEmpty) {
-      return sentence.trim();
-    }
-
-    final String fallback = _resolveCorrectSentence(payload);
-    return fallback.isEmpty ? 'Translate the sentence.' : fallback;
-  }
-
-  String _resolveCorrectSentence(Map<String, dynamic> payload) {
-    final dynamic sentence = payload['targetSentence'] ?? payload['correctSentence'] ?? payload['answer'];
-    if (sentence is String && sentence.trim().isNotEmpty) {
-      return sentence.trim();
-    }
-
-    final dynamic hint = payload['hint'];
-    if (hint is String && hint.trim().isNotEmpty) {
-      return hint.trim();
-    }
-
-    return 'Paul plays music here.';
   }
 }
 
@@ -284,16 +263,7 @@ class _WordChip extends StatelessWidget {
 class _UnderlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = const Color(0xFF2F3F4A)
-      ..strokeWidth = 2;
-
-    const double top = 16;
-    const double spacing = 56;
-
-    for (double y = top; y < size.height; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
+    return; // TODO: Bug de bucle infinito en Web CanvasKit.
   }
 
   @override

@@ -82,6 +82,7 @@ class _HomeViewState extends State<HomeView> {
 
     // Recargar mapa con la progresión actualizada
     await _viewModel.loadLessonNodes();
+    await _viewModel.loadProfile();
 
     if (!mounted) return;
 
@@ -702,36 +703,35 @@ class _LearningPath extends StatelessWidget {
       return const SizedBox(height: 420);
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final _PathLayout layout = _PathLayout.build(
-          lessonNodes: lessonNodes,
-          width: constraints.maxWidth,
-        );
+    return SizedBox(
+      width: double.infinity,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final _PathLayout layout = _PathLayout.build(
+            lessonNodes: lessonNodes,
+            width: constraints.maxWidth,
+          );
 
-        return SizedBox(
-          height: layout.totalHeight,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _PathLinePainter(nodes: lessonNodes, centers: layout.centers),
-                ),
-              ),
-              for (final item in layout.items)
-                _PathLesson(
-                  node: item.node,
-                  left: item.left,
-                  top: item.top,
-                  size: item.size,
-                  isNewlyUnlocked: item.node.id == unlockedNodeId,
-                  isActive: item.node.status == NodeStatus.active,
-                  onTap: () => onNodeTap?.call(item.node),
-                ),
-            ],
-          ),
-        );
-      },
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: layout.totalHeight,
+            child: Stack(
+              children: [
+                for (final item in layout.items)
+                  _PathLesson(
+                    node: item.node,
+                    left: item.left,
+                    top: item.top,
+                    size: item.size,
+                    isNewlyUnlocked: item.node.id == unlockedNodeId,
+                    isActive: item.node.status == NodeStatus.active,
+                    onTap: () => onNodeTap?.call(item.node),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -923,41 +923,7 @@ class _PathLinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (centers.length < 2 || nodes.length < 2) {
-      return;
-    }
-
-    for (var index = 1; index < centers.length; index++) {
-      final Offset previous = centers[index - 1];
-      final Offset current = centers[index];
-      final NodeStatus previousStatus = nodes[index - 1].status;
-      final NodeStatus currentStatus = nodes[index].status;
-      final double midY = (previous.dy + current.dy) / 2;
-
-      final Color segmentColor;
-      if (currentStatus == NodeStatus.locked) {
-        segmentColor = const Color(0xFF66737C);
-      } else if (previousStatus == NodeStatus.completed && currentStatus == NodeStatus.completed) {
-        segmentColor = const Color(0xFF9EEB2A);
-      } else if (previousStatus == NodeStatus.active || currentStatus == NodeStatus.active) {
-        segmentColor = const Color(0xFF6D5CFF);
-      } else {
-        segmentColor = const Color(0xFF49D8FF);
-      }
-
-      final Path segmentPath = Path()..moveTo(previous.dx, previous.dy);
-      segmentPath
-        ..quadraticBezierTo(previous.dx, midY, (previous.dx + current.dx) / 2, midY)
-        ..quadraticBezierTo(current.dx, midY, current.dx, current.dy);
-
-      final Paint paint = Paint()
-        ..color = segmentColor
-        ..strokeWidth = 6
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawPath(segmentPath, paint);
-    }
+    return; // TODO: Fix Web Canvas Bezier bug later
   }
 
   @override

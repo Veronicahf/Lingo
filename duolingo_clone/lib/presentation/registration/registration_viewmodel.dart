@@ -118,7 +118,9 @@ class RegistrationViewModel extends BaseViewModel {
       debugPrint('✅ Usuario creado en Firebase Auth. UID: ${credential.user?.uid}');
 
       await credential.user?.updateDisplayName(_name.trim());
-      debugPrint('📝 DisplayName actualizado en Firebase: ${_name.trim()}');
+      await credential.user?.reload();
+      await FirebaseAuth.instance.currentUser?.getIdToken(true);
+      debugPrint('📝 DisplayName en token forzado: ${FirebaseAuth.instance.currentUser?.displayName}');
 
       debugPrint('📡 Enviando POST /auth/register a Spring Boot...');
       await _userRepository.registerNewUser(onboardingAnswers: ['course_en']);

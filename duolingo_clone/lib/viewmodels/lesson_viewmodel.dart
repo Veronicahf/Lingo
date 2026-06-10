@@ -29,8 +29,6 @@ class LessonViewModel extends BaseViewModel {
 
   final MockUserRepository _userRepository;
 
-  static const int _practiceBufferSize = 10;
-
   List<LessonActivity> _activities = const [];
   int _currentActivityIndex = 0;
   bool _isChecking = false;
@@ -133,33 +131,19 @@ class LessonViewModel extends BaseViewModel {
     }
   }
 
-  /// Carga actividades filtradas por categoría para el centro de práctica.
-  Future<void> loadPracticeLesson(String category) async {
+  /// Carga actividades filtradas por tipo para el centro de práctica.
+  ///
+  /// Usa el endpoint dedicado que genera 10 actividades del mismo tipo.
+  Future<void> loadPracticeLesson(String type) async {
     _setState(LessonState.loading);
     _resetGameState();
     _currentNodeId = null;
 
     try {
-      final List<LessonActivity> allActivities =
-          await ServiceLocator.courseRepository.getPracticePool();
-      final List<LessonActivity> filtered = allActivities
-          .where((activity) => activity.category?.toLowerCase() == category.toLowerCase())
-          .toList()
-        ..shuffle();
+      final List<LessonActivity> activities =
+          await ServiceLocator.courseRepository.getPracticePool(type);
 
-      if (filtered.length < _practiceBufferSize) {
-        final List<LessonActivity> lessonActivities =
-            List<LessonActivity>.from(
-              await ServiceLocator.courseRepository.getLessonActivities(),
-            )..shuffle();
-        filtered.addAll(
-          lessonActivities.take(_practiceBufferSize - filtered.length),
-        );
-      }
-
-      _activities = List<LessonActivity>.unmodifiable(
-        filtered.take(_practiceBufferSize).toList(),
-      );
+      _activities = List<LessonActivity>.unmodifiable(activities);
       _currentActivityIndex = 0;
       _isPracticeMode = true;
       _currentHearts = await _userRepository.getCurrentHearts();
@@ -193,8 +177,19 @@ class LessonViewModel extends BaseViewModel {
     _isChecking = true;
     notifyListeners();
 
-    _isCorrect = userAnswer.trim().toLowerCase() ==
-        currentActivity.correctAnswer.trim().toLowerCase();
+    debugPrint('🔍 EVALUANDO ACTIVIDAD: ${currentActivity.prompt} | TIPO: ${currentActivity.type} | RESPUESTA IA: ${currentActivity.correctAnswer} | PAYLOAD: ${currentActivity.payload}');
+    debugPrint('🧐 IA correctAnswer crudo: ${currentActivity.correctAnswer}');
+    final String normalizedUser = userAnswer
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '');
+    final String normalizedCorrect = currentActivity.correctAnswer
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '');
+    debugPrint('🧠 Activity completa: type=${currentActivity.type} prompt="${currentActivity.prompt}" correctAnswer="${currentActivity.correctAnswer}" payload=${currentActivity.payload}');
+    debugPrint('🧐 Comparando: USUARIO: "$normalizedUser" VS BACKEND: "$normalizedCorrect"');
+    _isCorrect = normalizedUser == normalizedCorrect;
 
     _isChecking = false;
     notifyListeners();
@@ -249,6 +244,7 @@ class LessonViewModel extends BaseViewModel {
     _selectedAnswer = '';
     ServiceLocator.incrementCompletedLessons();
     await _userRepository.addXpToCurrentUser(10);
+    await _userRepository.completeLesson(10, 5); // 10 XP y 5 Gemas
     setSuccess(); // Marca que la lección está completada
   }
 
