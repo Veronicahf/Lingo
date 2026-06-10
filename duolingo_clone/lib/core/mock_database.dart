@@ -3,80 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/lesson_activity.dart';
 import '../models/more_option.dart';
 import '../models/onboarding_question.dart';
-
-/// Representa un usuario persistido en la base de datos en memoria.
-class User {
-  /// Crea un usuario con credenciales y progreso simulados.
-  const User({
-    required this.id,
-    required this.email,
-    required this.passwordHash,
-    required this.name,
-    required this.avatarUrl,
-    required this.streakDays,
-    required this.gems,
-    required this.totalXp,
-    required this.hearts,
-    required this.currentCourseId,
-  });
-
-  /// Identificador unico del usuario.
-  final String id;
-
-  /// Correo electronico del usuario.
-  final String email;
-
-  /// Hash simulado de la contraseña.
-  final String passwordHash;
-
-  /// Nombre visible del usuario.
-  final String name;
-
-  /// URL del avatar del usuario.
-  final String avatarUrl;
-
-  /// Dias consecutivos de racha.
-  final int streakDays;
-
-  /// Gemas acumuladas por el usuario.
-  final int gems;
-
-  /// Experiencia total acumulada por el usuario.
-  final int totalXp;
-
-  /// Corazones disponibles; -1 representa energia infinita.
-  final int hearts;
-
-  /// Identificador del curso que el usuario tiene activo.
-  final String currentCourseId;
-
-  /// Crea una copia del usuario con los campos indicados actualizados.
-  User copyWith({
-    String? id,
-    String? email,
-    String? passwordHash,
-    String? name,
-    String? avatarUrl,
-    int? streakDays,
-    int? gems,
-    int? totalXp,
-    int? hearts,
-    String? currentCourseId,
-  }) {
-    return User(
-      id: id ?? this.id,
-      email: email ?? this.email,
-      passwordHash: passwordHash ?? this.passwordHash,
-      name: name ?? this.name,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
-      streakDays: streakDays ?? this.streakDays,
-      gems: gems ?? this.gems,
-      totalXp: totalXp ?? this.totalXp,
-      hearts: hearts ?? this.hearts,
-      currentCourseId: currentCourseId ?? this.currentCourseId,
-    );
-  }
-}
+import '../models/user_model.dart';
 
 /// Representa un curso disponible dentro del catálogo local.
 class Course {
@@ -348,15 +275,15 @@ class MockDatabase {
     ),
     const LessonActivity(
       id: 'lesson_activity_02',
-      type: ActivityType.matchPairs,
-      prompt: 'Empareja cada palabra con su traduccion correcta.',
-      payload: <String, String>{
-        'casa': 'house',
-        'manzana': 'apple',
-        'agua': 'water',
+      type: ActivityType.selectTranslation,
+      prompt: 'Selecciona la traduccion correcta de "house".',
+      payload: <String, dynamic>{
+        'textToTranslate': 'house',
+        'title': 'Selecciona la traducción correcta',
+        'options': <String>['casa', 'mesa', 'agua', 'libro'],
       },
-      correctAnswer: 'all_matched',
-      aiExplanation: 'Emparejar por significado ayuda a no confundir términos cercanos. Una buena estrategia es buscar primero el equivalente más obvio y luego validar los pares restantes.',
+      correctAnswer: 'casa',
+      aiExplanation: '"House" se traduce como "casa" en español. Es un sustantivo femenino que se usa para referirse a un lugar de residencia.',
       mascotEmotion: 'typing',
     ),
     const LessonActivity(
@@ -373,14 +300,14 @@ class MockDatabase {
     ),
     const LessonActivity(
       id: 'lesson_activity_04',
-      type: ActivityType.repeat,
+      type: ActivityType.speaking,
       prompt: 'Repite la frase en voz alta.',
       payload: <String, dynamic>{
         'title': 'Practica la pronunciación',
         'sentence': 'We drink water every day.',
         'audioText': 'We drink water every day.',
       },
-      correctAnswer: 'repeat_completed',
+      correctAnswer: 'speaking_completed',
       aiExplanation: 'Escuchar y repetir ayuda a fijar ritmo, acentuación y memoria auditiva.',
       mascotEmotion: 'speaking',
     ),
@@ -408,28 +335,28 @@ class MockDatabase {
   static final List<LessonActivity> _practicePool = <LessonActivity>[
     const LessonActivity(
       id: 'practice_01',
-      type: ActivityType.repeat,
+      type: ActivityType.speaking,
       prompt: 'Repite la frase en voz alta.',
       payload: <String, dynamic>{
         'title': 'Practica la pronunciación',
         'sentence': 'I like to read books.',
         'audioText': 'I like to read books.',
       },
-      correctAnswer: 'repeat_completed',
+      correctAnswer: 'speaking_completed',
       aiExplanation: 'Repetir en voz alta mejora la retención y la fluidez oral.',
       mascotEmotion: 'speaking',
       category: 'speaking',
     ),
     const LessonActivity(
       id: 'practice_02',
-      type: ActivityType.repeat,
+      type: ActivityType.speaking,
       prompt: 'Repite lo que escuchas.',
       payload: <String, dynamic>{
         'title': 'Repite la frase',
         'sentence': 'She goes to school every morning.',
         'audioText': 'She goes to school every morning.',
       },
-      correctAnswer: 'repeat_completed',
+      correctAnswer: 'speaking_completed',
       aiExplanation: 'La repetición ayuda a fijar patrones gramaticales y de entonación.',
       mascotEmotion: 'speaking',
       category: 'speaking',

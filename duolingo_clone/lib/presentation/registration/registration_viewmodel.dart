@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import '../../core/base_viewmodel.dart';
-import '../../core/mock_database.dart';
 import '../../core/service_locator.dart';
 import '../../models/dtos/user_dto.dart';
+import '../../models/user_model.dart';
 import '../../repositories/user_repository.dart';
 
 /// ViewModel que gestiona el flujo de registro obligatorio (Nombre, Correo, Password).

@@ -3,18 +3,29 @@ import 'package:flutter/material.dart';
 import '../core/mock_database.dart';
 import '../models/news_article.dart';
 
-// TODO: Conectar a API Spring Boot real.
 /// Repositorio mock encargado del feed social de novedades.
 class MockNewsRepository {
   /// Crea un repositorio de noticias respaldado por la base en memoria.
   const MockNewsRepository();
 
   /// Obtiene el feed social como publicaciones de dominio puras.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/news/feed');
+  /// return (response.data as List).map((json) => NewsPost.fromJson(json)).toList();
+  /// ```
   Future<List<NewsPost>> getNewsFeed() async {
     return List<NewsPost>.unmodifiable(MockDatabase.instance.newsFeed);
   }
 
   /// Obtiene el feed social convertido al modelo que consume la UI actual.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/news/articles');
+  /// return (response.data as List).map((json) => NewsArticle.fromJson(json)).toList();
+  /// ```
   Future<List<NewsArticle>> getNewsArticles() async {
     final posts = await getNewsFeed();
     return List<NewsArticle>.generate(posts.length, (index) {
@@ -23,7 +34,12 @@ class MockNewsRepository {
     }, growable: false);
   }
 
-  /// Alterna el like de una publicacion en la base de datos en memoria.
+  /// Alterna el like de una publicacion.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// await ApiClient.instance.post('/news/$postId/toggle-like');
+  /// ```
   Future<void> toggleLike(String postId) async {
     MockDatabase.instance.toggleLikeNewsPost(postId);
   }

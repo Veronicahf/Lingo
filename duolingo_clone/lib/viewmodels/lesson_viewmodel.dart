@@ -2,7 +2,6 @@ import 'dart:async';
 
 import '../core/base_viewmodel.dart';
 import '../core/audio_service.dart';
-import '../core/mock_database.dart';
 import '../core/service_locator.dart';
 import '../models/dtos/lesson_response_dto.dart';
 import '../models/lesson_activity.dart';
@@ -103,8 +102,7 @@ class LessonViewModel extends BaseViewModel {
 
   /// Carga las actividades del nodo especificado y reinicia el estado.
   ///
-  /// [nodeId] es el identificador del [LessonNode] en el mapa, cuyas actividades
-  /// se cargan desde [MockDatabase].
+  /// [nodeId] es el identificador del [LessonNode] en el mapa.
   Future<void> loadLesson(String nodeId) async {
     _setState(LessonState.loading);
     _resetGameState();
@@ -112,7 +110,7 @@ class LessonViewModel extends BaseViewModel {
 
     try {
       final List<LessonActivity> nodeActivities =
-          MockDatabase.instance.getActivitiesForNode(nodeId);
+          ServiceLocator.courseRepository.getActivitiesForNode(nodeId);
 
       if (nodeActivities.isEmpty) {
         _setState(LessonState.error);
@@ -136,7 +134,8 @@ class LessonViewModel extends BaseViewModel {
     _currentNodeId = null;
 
     try {
-      final List<LessonActivity> allActivities = MockDatabase.instance.practicePool;
+      final List<LessonActivity> allActivities =
+          ServiceLocator.courseRepository.getPracticePool();
       final List<LessonActivity> filtered = allActivities
           .where((activity) => activity.category?.toLowerCase() == category.toLowerCase())
           .toList()
@@ -144,8 +143,9 @@ class LessonViewModel extends BaseViewModel {
 
       if (filtered.length < _practiceBufferSize) {
         final List<LessonActivity> lessonActivities =
-            List<LessonActivity>.from(MockDatabase.instance.lessonActivities)
-              ..shuffle();
+            List<LessonActivity>.from(
+              ServiceLocator.courseRepository.getLessonActivities(),
+            )..shuffle();
         filtered.addAll(
           lessonActivities.take(_practiceBufferSize - filtered.length),
         );
@@ -305,7 +305,7 @@ class LessonViewModel extends BaseViewModel {
 
   bool _isAuditory(LessonActivity activity) {
     return activity.type == ActivityType.listenSelect ||
-        activity.type == ActivityType.repeat;
+        activity.type == ActivityType.speaking;
   }
 
   String _resolveAudioText(LessonActivity activity) {

@@ -1,25 +1,22 @@
 /// Tipos de actividades soportadas por el motor de lecciones.
 enum ActivityType {
-  /// Actividad de completar un dialogo.
-  completeDialog,
-
-  /// Actividad de completar un espacio en blanco.
-  fillBlank,
+  /// Actividad de traducir una oracion.
+  translateSentence,
 
   /// Actividad de escuchar y seleccionar.
   listenSelect,
 
-  /// Actividad de repetir una frase.
-  repeat,
+  /// Actividad de completar un espacio en blanco.
+  fillBlank,
 
-  /// Actividad de emparejar pares.
-  matchPairs,
+  /// Actividad de repetir una frase en voz alta.
+  speaking,
 
   /// Actividad de seleccionar una traduccion.
   selectTranslation,
 
-  /// Actividad de traducir una oracion.
-  translateSentence,
+  /// Tipo desconocido o no soportado (fallback seguro desde JSON).
+  unknown,
 }
 
 /// Representa una actividad individual dentro de una leccion.
@@ -62,4 +59,33 @@ class LessonActivity {
 
   /// Categoria opcional para filtrar actividades en el centro de practica.
   final String? category;
+
+  /// Construye una [LessonActivity] desde un mapa JSON.
+  ///
+  /// Si el tipo es nulo o desconocido, se asigna [ActivityType.unknown]
+  /// para evitar que la aplicacion crashee con datos invalidos de la API.
+  factory LessonActivity.fromJson(Map<String, dynamic> json) {
+    final ActivityType resolvedType;
+    final dynamic rawType = json['type'];
+
+    if (rawType is String) {
+      resolvedType = ActivityType.values.firstWhere(
+        (t) => t.name == rawType,
+        orElse: () => ActivityType.unknown,
+      );
+    } else {
+      resolvedType = ActivityType.unknown;
+    }
+
+    return LessonActivity(
+      id: (json['id'] as String?) ?? '',
+      type: resolvedType,
+      prompt: (json['prompt'] as String?) ?? '',
+      payload: json['payload'],
+      correctAnswer: (json['correctAnswer'] as String?) ?? '',
+      aiExplanation: json['aiExplanation'] as String?,
+      mascotEmotion: (json['mascotEmotion'] as String?) ?? 'idle',
+      category: json['category'] as String?,
+    );
+  }
 }

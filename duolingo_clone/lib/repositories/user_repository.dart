@@ -1,14 +1,15 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
-
+import 'package:flutter/material.dart';
 import 'package:crypto/crypto.dart';
 
 import '../core/mock_database.dart';
 import '../models/challenge.dart';
 import '../models/dtos/user_dto.dart';
-import '../models/news_article.dart';
 import '../models/more_option.dart';
+import '../models/news_article.dart';
+import '../models/onboarding_question.dart';
 import '../models/ranking_user.dart';
+import '../models/user_model.dart';
 import '../models/user_profile.dart';
 import 'news_repository.dart';
 
@@ -20,7 +21,41 @@ import 'news_repository.dart';
 class MockUserRepository {
   const MockUserRepository();
 
+  /// ID del usuario con sesión activa en MockDatabase.
+  String getCurrentUserId() => MockDatabase.instance.currentUser?.id ?? '';
+
+  /// Activa la sesión de un usuario en MockDatabase.
+  void activateSession(String userId) {
+    MockDatabase.instance.setActiveUser(userId);
+  }
+
+  // ---------- Preguntas de onboarding ----------
+
+  /// Devuelve las preguntas del onboarding.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/onboarding/questions');
+  /// return (response.data as List)
+  ///     .map((json) => OnboardingQuestion.fromJson(json))
+  ///     .toList();
+  /// ```
+  List<OnboardingQuestion> getOnboardingQuestions() {
+    return MockDatabase.instance.onboardingQuestions;
+  }
+
+  // ---------- Registro / Autenticación ----------
+
   /// Registra un usuario nuevo a partir de las respuestas del onboarding y activa la sesion.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.post('/auth/register', data: {
+  ///   'onboardingAnswers': onboardingAnswers,
+  /// });
+  /// final user = User.fromJson(response.data);
+  /// return user;
+  /// ```
   Future<User> registerNewUser({required List<String> onboardingAnswers}) async {
     final String courseId = _resolveCourseId(onboardingAnswers.isNotEmpty ? onboardingAnswers.first : '');
     final Course? course = MockDatabase.instance.findCourseById(courseId);
@@ -45,29 +80,91 @@ class MockUserRepository {
   }
 
   /// Registra un usuario ya construido y activa la sesion en memoria.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.post('/auth/register', data: newUser.toJson());
+  /// return User.fromJson(response.data);
+  /// ```
   Future<User> registerUser(User newUser) async {
     MockDatabase.instance.upsertUser(newUser);
     MockDatabase.instance.setActiveUser(newUser.id);
     return newUser;
   }
 
-  /// Devuelve los corazones del usuario activo.
-  Future<int> getCurrentHearts() async {
-    return MockDatabase.instance.currentUser?.hearts ?? 0;
+  /// Verifica credenciales contra la base en memoria y activa la sesion si coinciden.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.post('/auth/login', data: {
+  ///   'email': email,
+  ///   'password': password,
+  /// });
+  /// final user = User.fromJson(response.data);
+  /// return user;
+  /// ```
+  Future<User?> authenticate(String email, String password) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedPassword = password.trim();
+
+    for (final user in MockDatabase.instance.users) {
+      final bool emailMatches = user.email.trim().toLowerCase() == normalizedEmail;
+      final bool passwordMatches = user.passwordHash == normalizedPassword;
+
+      if (emailMatches && passwordMatches) {
+        MockDatabase.instance.setActiveUser(user.id);
+        return user;
+      }
+    }
+
+    return null;
   }
 
-  /// Resta un corazón al usuario activo y persiste el cambio.
-  Future<void> decrementHearts() async {
-    final currentUser = MockDatabase.instance.currentUser;
+  // ---------- Corazones ----------
+
+  /// Devuelve los corazones de un usuario específico.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/users/$uid/hearts');
+  /// return response.data as int;
+  /// ```
+  Future<int> getCurrentHearts([String uid = '']) async {
+    final user = uid.isNotEmpty
+        ? MockDatabase.instance.findUserById(uid)
+        : MockDatabase.instance.currentUser;
+    return user?.hearts ?? 0;
+  }
+
+  /// Resta un corazón al usuario y persiste el cambio.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// await ApiClient.instance.post('/users/$uid/hearts/decrement');
+  /// ```
+  Future<void> decrementHearts([String uid = '']) async {
+    final currentUser = uid.isNotEmpty
+        ? MockDatabase.instance.findUserById(uid)
+        : MockDatabase.instance.currentUser;
     if (currentUser == null || currentUser.hearts <= 0) return;
     final updatedUser = currentUser.copyWith(hearts: currentUser.hearts - 1);
     MockDatabase.instance.upsertUser(updatedUser);
     MockDatabase.instance.setActiveUser(updatedUser.id);
   }
 
-  /// Suma experiencia al usuario actualmente activo.
-  Future<User?> addXpToCurrentUser(int xp) async {
-    final User? currentUser = MockDatabase.instance.currentUser;
+  // ---------- XP ----------
+
+  /// Suma experiencia al usuario.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.post('/users/$uid/xp', data: {'xp': xp});
+  /// return User.fromJson(response.data);
+  /// ```
+  Future<User?> addXpToCurrentUser(int xp, [String uid = '']) async {
+    final User? currentUser = uid.isNotEmpty
+        ? MockDatabase.instance.findUserById(uid)
+        : MockDatabase.instance.currentUser;
     if (currentUser == null || xp <= 0) {
       return currentUser;
     }
@@ -81,10 +178,15 @@ class MockUserRepository {
     return updatedUser;
   }
 
+  // ---------- Progreso ----------
+
   /// Persiste el progreso completo del usuario a partir de un [UserDTO].
   ///
-  /// Encapsula la actualización de racha, nivel y XP en un solo objeto JSON
-  /// antes de enviarlo al repositorio, asegurando un contrato de comunicación uniforme.
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.put('/users/${userDto.userId}/progress', data: userDto.toJson());
+  /// return User.fromJson(response.data);
+  /// ```
   Future<User?> saveUserProgress(UserDTO userDto) async {
     final User? existingUser = MockDatabase.instance.findUserById(userDto.userId);
     if (existingUser == null) return null;
@@ -104,30 +206,19 @@ class MockUserRepository {
     return updatedUser;
   }
 
-  /// Verifica credenciales contra la base en memoria y activa la sesion si coinciden.
-  Future<User?> authenticate(String email, String password) async {
-    print('Intentando login con: $email, $password');
+  // ---------- Perfil ----------
 
-    final normalizedEmail = email.trim().toLowerCase();
-    final normalizedPassword = password.trim();
-
-    for (final user in MockDatabase.instance.users) {
-      final bool emailMatches = user.email.trim().toLowerCase() == normalizedEmail;
-      final bool passwordMatches = user.passwordHash == normalizedPassword;
-
-      if (emailMatches && passwordMatches) {
-        MockDatabase.instance.setActiveUser(user.id);
-        return user;
-      }
-    }
-
-    return null;
-  }
-
-  // TODO: Refactorizar para consumir la API REST (Java Spring Boot) usando HTTP.
-  /// Obtiene el perfil del usuario desde datos falsos para simular una respuesta remota.
-  Future<UserProfile> getUserProfile() async {
-    final currentUser = MockDatabase.instance.currentUser;
+  /// Obtiene el perfil del usuario.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/users/$uid/profile');
+  /// return UserProfile.fromJson(response.data);
+  /// ```
+  Future<UserProfile> getUserProfile([String uid = '']) async {
+    final currentUser = uid.isNotEmpty
+        ? MockDatabase.instance.findUserById(uid)
+        : MockDatabase.instance.currentUser;
     final currentCourse = currentUser == null
         ? null
         : MockDatabase.instance.findCourseById(currentUser.currentCourseId);
@@ -155,11 +246,20 @@ class MockUserRepository {
     );
   }
 
-  // TODO: Refactorizar para consumir la API REST (Java Spring Boot) usando HTTP.
-  /// Obtiene la lista de desafios desde datos falsos para simular la respuesta remota.
-  Future<List<Challenge>> getChallenges() async {
+  // ---------- Desafíos ----------
+
+  /// Obtiene la lista de desafios del usuario.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/users/$uid/challenges');
+  /// return (response.data as List).map((json) => Challenge.fromJson(json)).toList();
+  /// ```
+  Future<List<Challenge>> getChallenges([String uid = '']) async {
     final database = MockDatabase.instance;
-    final currentUser = database.currentUser;
+    final currentUser = uid.isNotEmpty
+        ? database.findUserById(uid)
+        : database.currentUser;
     final currentCourse = currentUser == null ? null : database.findCourseById(currentUser.currentCourseId);
     final completedPosts = database.newsFeed.where((post) => post.isLikedByMe).length;
     final totalUsers = database.users.length;
@@ -206,10 +306,19 @@ class MockUserRepository {
     ];
   }
 
-  // TODO: Refactorizar para consumir la API REST (Java Spring Boot) usando HTTP.
-  /// Obtiene la lista falsa de usuarios del ranking para simular el leaderboard.
-  Future<List<RankingUser>> getRankingUsers() async {
-    final currentUser = MockDatabase.instance.currentUser;
+  // ---------- Ranking ----------
+
+  /// Obtiene la lista de usuarios del ranking.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/ranking');
+  /// return (response.data as List).map((json) => RankingUser.fromJson(json)).toList();
+  /// ```
+  Future<List<RankingUser>> getRankingUsers([String uid = '']) async {
+    final currentUser = uid.isNotEmpty
+        ? MockDatabase.instance.findUserById(uid)
+        : MockDatabase.instance.currentUser;
     final users = MockDatabase.instance.users
         .map(
           (user) => RankingUser(
@@ -225,17 +334,31 @@ class MockUserRepository {
     return users;
   }
 
-  // TODO: Refactorizar para consumir la API REST (Java Spring Boot) usando HTTP.
+  // ---------- Datos estáticos ----------
+
   /// Obtiene la lista de articulos de novedades desde datos falsos.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/news');
+  /// return (response.data as List).map((json) => NewsArticle.fromJson(json)).toList();
+  /// ```
   Future<List<NewsArticle>> getNewsArticles() async {
     return const MockNewsRepository().getNewsArticles();
   }
 
-  // TODO: Refactorizar para consumir la API REST (Java Spring Boot) usando HTTP.
-  /// Obtiene la lista de opciones del menu "Más" desde datos falsos.
+  /// Obtiene la lista de opciones del menu "Más".
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/more/options');
+  /// return (response.data as List).map((json) => MoreOption.fromJson(json)).toList();
+  /// ```
   Future<List<MoreOption>> getMoreOptions() async {
     return MockDatabase.instance.moreOptions;
   }
+
+  // ---------- Métodos privados ----------
 
   int _calculateTotalXp(User user) {
     final int heartsBonus = user.hearts == -1 ? 500 : user.hearts * 80;
