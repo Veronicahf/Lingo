@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/service_locator.dart';
 import '../../models/onboarding_question.dart';
 import '../../viewmodels/onboarding_viewmodel.dart';
-import '../layout/main_layout_screen.dart';
+import '../registration/registration_screen.dart';
 import '../widgets/mascot_animation_widget.dart';
 
 /// Pantalla que ejecuta el wizard de onboarding secuencial con 8 preguntas.
@@ -80,7 +80,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
 
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
+                            MaterialPageRoute<void>(builder: (_) => const RegistrationScreen()),
                           );
                           return;
                         }

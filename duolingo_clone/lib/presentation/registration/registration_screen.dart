@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../models/user_model.dart';
+import '../layout/main_layout_screen.dart';
+import '../onboarding/welcome_screen.dart';
 import '../widgets/mascot_animation_widget.dart';
 import 'registration_viewmodel.dart';
 
@@ -40,10 +41,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.close_rounded, color: Color(0xFF55C7FF)),
-              onPressed: () => Navigator.pop(context),
-            ),
+              leading: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Color(0xFF55C7FF)),
+                onPressed: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
+                ),
+              ),
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -121,6 +125,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     textInputAction: TextInputAction.done,
                   ),
                   const SizedBox(height: 32),
+                  _buildErrorMessage(),
+                  const SizedBox(height: 16),
                   _buildRegisterButton(context),
                   const SizedBox(height: 16),
                   _buildSocialLoginSection(context),
@@ -211,6 +217,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
+  Widget _buildErrorMessage() {
+    final String? message = _viewModel.errorMessage;
+    if (message == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Color(0xFFFF3B3B),
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
   Widget _buildRegisterButton(BuildContext context) {
     if (_viewModel.isLoading) {
       return const Center(
@@ -225,9 +249,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     return GestureDetector(
       onTap: () async {
-        final User? user = await _viewModel.submitRegistration();
-        if (user != null && context.mounted) {
-          Navigator.pop(context);
+        final bool success = await _viewModel.submitRegistration();
+        if (success && context.mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
+          );
         }
       },
       child: Container(
@@ -341,18 +368,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Future<void> _handleSocialLogin(BuildContext context, String provider) async {
-    _nameController.text = 'Usuario de $provider';
-    _viewModel.setName('Usuario de $provider');
-    _emailController.text = '${provider.toLowerCase()}@lingo.local';
-    _viewModel.setEmail('${provider.toLowerCase()}@lingo.local');
-    _viewModel.setPassword('social123');
-    _viewModel.setConfirmPassword('social123');
-    _passwordController.text = 'social123';
-    _confirmPasswordController.text = 'social123';
-
-    final User? user = await _viewModel.submitRegistration();
-    if (user != null && context.mounted) {
-      Navigator.pop(context);
+    final bool success = await _viewModel.handleSocialLogin();
+    if (success && context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
+      );
     }
   }
 }

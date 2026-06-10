@@ -1,0 +1,19 @@
+# Firebase
+lingoapi/src/main/resources/firebase-service-account.json
+
+# Spring Boot
+lingoapi/src/main/resources/application.properties
+
+# IDEs
+.idea/
+.vscode/
+
+# Maven
+target/
+
+# Logs
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

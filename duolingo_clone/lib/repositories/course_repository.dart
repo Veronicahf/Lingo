@@ -1,158 +1,69 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
-import '../core/mock_database.dart';
+import '../core/api_client.dart';
+import '../models/course_model.dart';
 import '../models/lesson_activity.dart';
 import '../models/lesson_node.dart';
 
-// TODO: Conectar a API Spring Boot real.
-/// Repositorio simulado que entrega el mapa de lecciones desde datos locales.
+/// Repositorio que entrega el catálogo de cursos, el mapa de lecciones y
+/// las actividades generadas por la IA desde el backend Spring Boot.
 ///
-/// Cada [LessonNode] incluye su propia lista de [LessonActivity] para que
-/// el [LessonViewModel] cargue las actividades del nodo específico al
-/// iniciar una lección.
+/// El [ApiClient.instance] inyecta automáticamente el token JWT de Firebase
+/// en cada petición a través del [_AuthInterceptor].
 class MockCourseRepository {
-  /// Crea un repositorio mock de cursos.
   const MockCourseRepository();
+
+  // ---------- Cursos ----------
+
+  /// Obtiene el catálogo de idiomas disponibles.
+  Future<List<Course>> getCourses() async {
+    final response = await ApiClient.instance.get('/courses');
+    final list = response.data as List;
+    return list.map((json) => Course.fromJson(json as Map<String, dynamic>)).toList();
+  }
 
   // ---------- Nodos del mapa ----------
 
-  /// Obtiene una lista de nodos de leccion para el mapa.
+  /// Obtiene los nodos del mapa de lecciones para un curso.
   ///
-  /// TODO API:
-  /// ```dart
-  /// final response = await ApiClient.instance.get('/courses/$courseId/nodes');
-  /// return (response.data as List).map((json) => LessonNode.fromJson(json)).toList();
-  /// ```
-  Future<List<LessonNode>> getLessonNodes() async {
-    return [
-      LessonNode(
-        id: 'lesson_01',
-        title: 'Repaso rapido',
-        type: LessonNodeType.star,
-        status: NodeStatus.active,
-        position: Offset(146, 18),
-        activities: getActivitiesForNode('lesson_01'),
-      ),
-      LessonNode(
-        id: 'lesson_02',
-        title: 'Vocabulario base',
-        type: LessonNodeType.star,
-        status: NodeStatus.locked,
-        position: Offset(88, 138),
-        activities: getActivitiesForNode('lesson_02'),
-      ),
-      LessonNode(
-        id: 'lesson_03',
-        title: 'Audio y escucha',
-        type: LessonNodeType.book,
-        status: NodeStatus.locked,
-        position: Offset(48, 260),
-        activities: getActivitiesForNode('lesson_03'),
-      ),
-      LessonNode(
-        id: 'lesson_04',
-        title: 'Guia del personaje',
-        type: LessonNodeType.boss,
-        status: NodeStatus.completed,
-        position: Offset(282, 250),
-        activities: getActivitiesForNode('lesson_04'),
-      ),
-      LessonNode(
-        id: 'lesson_05',
-        title: 'Frases utiles',
-        type: LessonNodeType.book,
-        status: NodeStatus.locked,
-        position: Offset(100, 400),
-        activities: getActivitiesForNode('lesson_05'),
-      ),
-      LessonNode(
-        id: 'lesson_06',
-        title: 'Entrenamiento',
-        type: LessonNodeType.dumbbell,
-        status: NodeStatus.locked,
-        position: Offset(146, 530),
-        activities: getActivitiesForNode('lesson_06'),
-      ),
-      LessonNode(
-        id: 'lesson_07',
-        title: 'Dialogos cortos',
-        type: LessonNodeType.book,
-        status: NodeStatus.locked,
-        position: Offset(256, 680),
-        activities: getActivitiesForNode('lesson_07'),
-      ),
-      LessonNode(
-        id: 'lesson_08',
-        title: 'Mini jefe',
-        type: LessonNodeType.boss,
-        status: NodeStatus.completed,
-        position: Offset(42, 830),
-        activities: getActivitiesForNode('lesson_08'),
-      ),
-      LessonNode(
-        id: 'lesson_09',
-        title: 'Pronunciacion',
-        type: LessonNodeType.star,
-        status: NodeStatus.locked,
-        position: Offset(246, 970),
-        activities: getActivitiesForNode('lesson_09'),
-      ),
-      LessonNode(
-        id: 'lesson_10',
-        title: 'Cierre de etapa',
-        type: LessonNodeType.boss,
-        status: NodeStatus.locked,
-        position: Offset(176, 1088),
-        activities: getActivitiesForNode('lesson_10'),
-      ),
-    ];
+  /// Cada [LessonNode] regresa sin actividades (lista vacía). El ViewModel
+  /// debe cargar las actividades de cada nodo llamando a [getActivitiesForNode].
+  Future<List<LessonNode>> getLessonNodes(String courseId) async {
+    debugPrint('🗺️ Solicitando mapa de lecciones al backend...');
+    final response = await ApiClient.instance.get('/courses/$courseId/nodes');
+    final list = response.data as List;
+    final nodos = list.map((json) => LessonNode.fromJson(json as Map<String, dynamic>)).toList();
+    debugPrint('✅ Mapa recibido: ${nodos.length} nodos.');
+    return nodos;
   }
 
   // ---------- Actividades de lección ----------
 
-  /// Devuelve las actividades asignadas a un nodo específico del mapa.
+  /// Devuelve las actividades generadas por IA para un nodo específico.
   ///
-  /// TODO API:
-  /// ```dart
-  /// final response = await ApiClient.instance.get('/nodes/$nodeId/activities');
-  /// return (response.data as List).map((json) => LessonActivity.fromJson(json)).toList();
-  /// ```
-  List<LessonActivity> getActivitiesForNode(String nodeId) {
-    return MockDatabase.instance.getActivitiesForNode(nodeId);
+  /// ⚠️  Este endpoint puede tardar varios segundos porque el backend consulta
+  /// un LLM en tiempo real para generar las actividades. El ViewModel debe
+  /// manejar correctamente el estado [LessonState.loading] para no bloquear la UI.
+  Future<List<LessonActivity>> getActivitiesForNode(String nodeId) async {
+    debugPrint('🧠 Solicitando generación dinámica a la IA para el nodo $nodeId (Esto puede tardar unos segundos)...');
+    final response = await ApiClient.instance.get('/nodes/$nodeId/activities');
+    final list = response.data as List;
+    final actividades = list.map((json) => LessonActivity.fromJson(json as Map<String, dynamic>)).toList();
+    debugPrint('🤖 JSON de IA recibido y parseado: ${actividades.length} actividades.');
+    return actividades;
   }
 
-  /// Pool completo de actividades para el centro de práctica.
-  ///
-  /// TODO API:
-  /// ```dart
-  /// final response = await ApiClient.instance.get('/activities/practice-pool');
-  /// return (response.data as List).map((json) => LessonActivity.fromJson(json)).toList();
-  /// ```
-  List<LessonActivity> getPracticePool() {
-    return MockDatabase.instance.practicePool;
+  /// Pool de actividades para el centro de práctica.
+  Future<List<LessonActivity>> getPracticePool() async {
+    final response = await ApiClient.instance.get('/activities/practice-pool');
+    final list = response.data as List;
+    return list.map((json) => LessonActivity.fromJson(json as Map<String, dynamic>)).toList();
   }
 
   /// Pool completo de actividades de lección.
-  ///
-  /// TODO API:
-  /// ```dart
-  /// final response = await ApiClient.instance.get('/activities/lesson-pool');
-  /// return (response.data as List).map((json) => LessonActivity.fromJson(json)).toList();
-  /// ```
-  List<LessonActivity> getLessonActivities() {
-    return MockDatabase.instance.lessonActivities;
-  }
-
-  // ---------- Cursos ----------
-
-  /// Obtiene los cursos disponibles.
-  ///
-  /// TODO API:
-  /// ```dart
-  /// final response = await ApiClient.instance.get('/courses');
-  /// return (response.data as List).map((json) => Course.fromJson(json)).toList();
-  /// ```
-  Future<List<Course>> getCourses() async {
-    return List<Course>.unmodifiable(MockDatabase.instance.courses);
+  Future<List<LessonActivity>> getLessonActivities() async {
+    final response = await ApiClient.instance.get('/activities/lesson-pool');
+    final list = response.data as List;
+    return list.map((json) => LessonActivity.fromJson(json as Map<String, dynamic>)).toList();
   }
 }

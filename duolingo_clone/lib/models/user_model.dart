@@ -44,6 +44,22 @@ class User {
   /// Identificador del curso que el usuario tiene activo.
   final String currentCourseId;
 
+  /// Construye un [User] desde un mapa JSON devuelto por la API.
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      passwordHash: json['passwordHash'] as String? ?? '',
+      name: json['name'] as String? ?? 'Estudiante',
+      avatarUrl: json['avatarUrl'] as String? ?? 'https://ui-avatars.com/api/?name=Estudiante',
+      streakDays: json['streakDays'] as int? ?? 0,
+      gems: json['gems'] as int? ?? 0,
+      totalXp: json['totalXp'] as int? ?? 0,
+      hearts: json['hearts'] as int? ?? 5,
+      currentCourseId: json['currentCourseId'] as String? ?? 'course_en',
+    );
+  }
+
   /// Crea una copia del usuario con los campos indicados actualizados.
   User copyWith({
     String? id,

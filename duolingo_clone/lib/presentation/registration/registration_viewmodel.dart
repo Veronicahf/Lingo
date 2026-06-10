@@ -1,18 +1,17 @@
-import 'dart:convert';
-
-import 'package:crypto/crypto.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../core/base_viewmodel.dart';
 import '../../core/service_locator.dart';
-import '../../models/dtos/user_dto.dart';
-import '../../models/user_model.dart';
 import '../../repositories/user_repository.dart';
 
 /// ViewModel que gestiona el flujo de registro obligatorio (Nombre, Correo, Password).
 ///
-/// Se activa al completar la lección 2 o al intentar acceder a Ranking/Perfil
-/// sin haber finalizado el registro. Al completarse, persiste el [User] completo
-/// en MockDatabase y activa la sesión.
+/// Firebase Auth es ahora la "Fuente de la Verdad" para la identidad del usuario.
+/// El registro en Firebase crea la cuenta de autenticación y, solo después,
+/// se notifica al backend Spring Boot para que cree el perfil en PostgreSQL.
+/// Esto asegura que el [_AuthInterceptor] de [ApiClient] tenga un token JWT
+/// válido de Firebase antes de cualquier llamada a la API.
 class RegistrationViewModel extends BaseViewModel {
   RegistrationViewModel({MockUserRepository? userRepository})
       : _userRepository = userRepository ?? ServiceLocator.userRepository;
@@ -95,54 +94,104 @@ class RegistrationViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  /// Completa el registro creando el usuario, activando la sesión y
-  /// persistiendo el progreso inicial en MockDatabase.
-  Future<User?> submitRegistration() async {
-    if (!isValid || isLoading) return null;
+  /// Registra al usuario en Firebase Auth y luego crea su perfil en el backend.
+  ///
+  /// Flujo:
+  /// 1. Firebase Auth crea la cuenta (email+password) — Firebase es la fuente de verdad.
+  /// 2. Se actualiza el `displayName` en Firebase con el nombre real.
+  /// 3. Se notifica al backend Spring Boot via POST /auth/register para que cree
+  ///    el perfil en PostgreSQL. El [_AuthInterceptor] de [ApiClient] inyecta
+  ///    automáticamente el token `Authorization: Bearer <token>` de Firebase.
+  /// 4. Sin token de Firebase → el backend rechaza la petición con 401.
+  Future<bool> submitRegistration() async {
+    if (!isValid || isLoading) return false;
 
+    debugPrint('🚀 Iniciando registro de usuario con correo...');
     setLoading(true);
 
     try {
-      final String courseId = 'course_en';
-      final String userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
-
-      final User newUser = User(
-        id: userId,
-        email: _email.trim().toLowerCase(),
-        passwordHash: md5.convert(utf8.encode(_password.trim())).toString(),
-        name: _name.trim(),
-        avatarUrl: 'https://placehold.co/256x256/png?text=${Uri.encodeComponent(_name.trim())}',
-        streakDays: 0,
-        gems: 50,
-        totalXp: 0,
-        hearts: 5,
-        currentCourseId: courseId,
-      );
-
-      final User registeredUser = await _userRepository.registerUser(newUser);
-
-      // Persiste progreso inicial a través del DTO
-      final UserDTO initialProgress = UserDTO(
-        userId: registeredUser.id,
-        name: registeredUser.name,
-        email: registeredUser.email,
+      final UserCredential credential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _email.trim(),
         password: _password.trim(),
-        streakDays: 0,
-        totalXp: 0,
-        level: 1,
-        hearts: 5,
-        gems: 50,
-        currentCourseId: courseId,
-        avatarUrl: registeredUser.avatarUrl,
       );
-      await _userRepository.saveUserProgress(initialProgress);
+      debugPrint('✅ Usuario creado en Firebase Auth. UID: ${credential.user?.uid}');
+
+      await credential.user?.updateDisplayName(_name.trim());
+      debugPrint('📝 DisplayName actualizado en Firebase: ${_name.trim()}');
+
+      debugPrint('📡 Enviando POST /auth/register a Spring Boot...');
+      await _userRepository.registerNewUser(onboardingAnswers: ['course_en']);
 
       ServiceLocator.markRegistrationComplete();
       setSuccess();
-      return registeredUser;
-    } catch (_) {
-      setError('No se pudo completar el registro. Inténtalo de nuevo.');
-      return null;
+      debugPrint('🎉 Registro completo y sesión iniciada localmente.');
+      return true;
+    } catch (e) {
+      debugPrint('🔥 Error Auth raw: $e');
+
+      String message;
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'email-already-in-use':
+            message = 'Este correo ya está registrado.';
+            break;
+          case 'weak-password':
+            message = 'La contraseña es muy débil.';
+            break;
+          case 'invalid-email':
+            message = 'El correo no es válido.';
+            break;
+          default:
+            message = 'Error de autenticación: ${e.message}';
+        }
+      } else {
+        message = 'No se pudo completar el registro. Inténtalo de nuevo.';
+      }
+      setError(message);
+      return false;
+    }
+  }
+
+  /// Inicia sesión con un proveedor social (Google).
+  ///
+  /// Firebase Auth maneja el flujo OAuth y, al igual que en [submitRegistration],
+  /// el [_AuthInterceptor] usará el token resultante para autenticar la llamada
+  /// a [registerNewUser] contra el backend Spring Boot.
+  Future<bool> handleSocialLogin() async {
+    if (isLoading) return false;
+
+    debugPrint('🚀 Iniciando login social con Google...');
+    setLoading(true);
+
+    try {
+      if (kIsWeb) {
+        debugPrint('🌐 Plataforma web — usando signInWithPopup');
+        await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+      } else {
+        debugPrint('📱 Plataforma móvil — usando signInWithProvider');
+        await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
+      }
+      debugPrint('✅ Usuario autenticado con Google en Firebase Auth');
+
+      debugPrint('📡 Enviando POST /auth/register a Spring Boot...');
+      await _userRepository.registerNewUser(onboardingAnswers: ['course_en']);
+
+      ServiceLocator.markRegistrationComplete();
+      setSuccess();
+      debugPrint('🎉 Registro social completo y sesión iniciada.');
+      return true;
+    } catch (e) {
+      debugPrint('🔥 Error Auth raw: $e');
+
+      String message;
+      if (e is FirebaseAuthException) {
+        message = e.message ?? 'Error al iniciar sesión con Google.';
+      } else {
+        message = 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.';
+      }
+      setError(message);
+      return false;
     }
   }
 

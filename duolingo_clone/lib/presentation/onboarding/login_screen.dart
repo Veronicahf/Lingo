@@ -18,41 +18,17 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   late LoginViewModel _viewModel;
-  bool _didNavigate = false;
 
   @override
   void initState() {
     super.initState();
     _viewModel = LoginViewModel(userRepository: ServiceLocator.userRepository);
-    _viewModel.addListener(_handleViewModelChanges);
   }
 
   @override
   void dispose() {
-    _viewModel.removeListener(_handleViewModelChanges);
     _viewModel.dispose();
     super.dispose();
-  }
-
-  void _handleViewModelChanges() {
-    if (!mounted) {
-      return;
-    }
-
-    if (_viewModel.isSuccess && !_didNavigate) {
-      _didNavigate = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
-          (route) => false,
-        );
-      });
-    }
   }
 
   @override
@@ -84,6 +60,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 10),
                 const _ForgotPasswordButton(),
                 const SizedBox(height: 20),
+                const _LoginErrorMessage(),
+                const SizedBox(height: 12),
                 const _LoginButton(),
                 const SizedBox(height: 12),
                 const _LoginFeedback(),
@@ -303,6 +281,34 @@ class _ForgotPasswordButton extends StatelessWidget {
   }
 }
 
+/// Mensaje de error en rojo sobre el botón de ingreso.
+class _LoginErrorMessage extends StatelessWidget {
+  const _LoginErrorMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<LoginViewModel>(
+      builder: (context, vm, _) {
+        final String? message = vm.errorMessage;
+        if (message == null) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFFFF3B3B),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// Boton principal que ejecuta el login contra el ViewModel.
 class _LoginButton extends StatelessWidget {
   /// Crea el boton de ingreso ligado al estado del formulario.
@@ -315,7 +321,15 @@ class _LoginButton extends StatelessWidget {
         return IgnorePointer(
           ignoring: vm.isLoading || !vm.isFormValid,
           child: GestureDetector(
-            onTap: () => vm.login(vm.email, vm.password),
+            onTap: () async {
+              final success = await vm.login(vm.email, vm.password);
+              if (success && context.mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
+                );
+              }
+            },
             child: Container(
               width: double.infinity,
               height: 56,
@@ -513,55 +527,78 @@ class _FacebookButton extends StatelessWidget {
   }
 }
 
-/// Boton social de Google que por ahora solo muestra el mensaje de construccion.
+/// Boton social de Google para iniciar sesión con ese proveedor.
 class _GoogleButton extends StatelessWidget {
   /// Crea el boton de Google.
   const _GoogleButton();
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        UnderConstructionCommand().execute(context);
-      },
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: const Color(0xFF18222B),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.3),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              offset: const Offset(0, 4),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.language,
-              color: Colors.white,
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'GOOGLE',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
+    return Consumer<LoginViewModel>(
+      builder: (context, vm, _) {
+        return GestureDetector(
+          onTap: vm.isLoading
+              ? null
+              : () async {
+                  final success = await vm.handleSocialLogin();
+                  if (success && context.mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute<void>(builder: (_) => const MainLayoutScreen()),
+                    );
+                  }
+                },
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: const Color(0xFF18222B),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.3),
+                width: 1.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  offset: const Offset(0, 4),
+                  blurRadius: 8,
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+            child: Center(
+              child: vm.isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.6,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF55C7FF)),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.language,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'GOOGLE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

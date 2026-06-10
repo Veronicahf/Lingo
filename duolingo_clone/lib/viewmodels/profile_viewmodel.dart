@@ -1,3 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+
 import '../core/base_viewmodel.dart';
 import '../core/service_locator.dart';
 import '../models/user_profile.dart';
@@ -21,16 +24,26 @@ class ProfileViewModel extends BaseViewModel {
   /// Perfil cargado desde el repositorio o `null` mientras aún no existe respuesta.
   UserProfile? get profile => _profile;
 
-  // TODO: Reemplazar por llamada a la API REST (Spring Boot) para nuestra futura integración.
   /// Carga el perfil del usuario y notifica a la vista cuando la información cambia.
   Future<void> loadProfile() async {
     setLoading(true);
 
     try {
-      _profile = await _userRepository.getUserProfile();
+      final profile = await _userRepository.getUserProfile();
+      debugPrint('👤 Perfil recibido en ViewModel: ${profile.username}, ${profile.totalXp} XP, ${profile.streakDays} días, ${profile.gems} gemas, ${profile.hearts} corazones, liga: ${profile.leagueName}');
+      _profile = profile;
+      notifyListeners();
       setSuccess();
     } catch (error) {
+      debugPrint('❌ Error al cargar perfil: $error');
       setError('No se pudo cargar el perfil.');
     }
+  }
+
+  /// Cierra la sesión del usuario en Firebase Auth y limpia el estado local.
+  Future<void> logout() async {
+    await FirebaseAuth.instance.signOut();
+    _profile = null;
+    resetState();
   }
 }

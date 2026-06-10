@@ -40,12 +40,19 @@ class ApiClient {
   ApiClient({Dio? dio})
     : _dio = dio ?? _createDio();
 
+  ApiClient._internal() : _dio = _createDio();
+
+  /// Instancia global compartida con el interceptor de Firebase configurado.
+  static final ApiClient instance = ApiClient._internal();
+
   static const String _defaultBaseUrl = 'http://localhost:8080';
 
   final Dio _dio;
 
   static Dio _createDio() {
-    final baseUrl = String.fromEnvironment(
+    // String.fromEnvironment solo puede usarse en un contexto const porque
+    // evalúa variables de compilación (--dart-define) en tiempo de compilación.
+    const baseUrl = String.fromEnvironment(
       'API_URL',
       defaultValue: _defaultBaseUrl,
     );

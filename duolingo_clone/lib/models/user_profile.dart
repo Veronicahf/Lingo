@@ -12,6 +12,7 @@ class UserProfile {
     required this.hearts,
     required this.leagueName,
     required this.totalXp,
+    this.currentCourseId,
   });
 
   /// Nombre visible del usuario.
@@ -34,4 +35,21 @@ class UserProfile {
 
   /// Experiencia total acumulada por el usuario.
   final int totalXp;
+
+  /// ID del curso activo del usuario.
+  final String? currentCourseId;
+
+  /// Construye un [UserProfile] desde un mapa JSON devuelto por la API.
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      username: json['username'] as String? ?? 'Estudiante',
+      avatarUrl: json['avatarUrl'] as String? ?? 'https://ui-avatars.com/api/?name=Estudiante',
+      streakDays: json['streakDays'] as int? ?? 0,
+      gems: json['gems'] as int? ?? 0,
+      hearts: json['hearts'] as int? ?? 5,
+      leagueName: json['leagueName'] as String? ?? 'Bronce',
+      totalXp: json['totalXp'] as int? ?? 0,
+      currentCourseId: json['currentCourseId'] as String?,
+    );
+  }
 }
