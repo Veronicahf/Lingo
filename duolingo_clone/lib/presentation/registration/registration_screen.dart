@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/mock_database.dart';
+import '../../models/user_model.dart';
 import '../widgets/mascot_animation_widget.dart';
 import 'registration_viewmodel.dart';
 

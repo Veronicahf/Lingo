@@ -275,7 +275,7 @@ class _ActiveLessonScreenState extends State<ActiveLessonScreen> {
                                 });
                                 _viewModel.setSelectedAnswer(answer);
                               },
-                              onRepeatSkip: _skipRepeatCommand,
+                              onSkip: _skipRepeatCommand,
                             ),
                           ),
                         ),

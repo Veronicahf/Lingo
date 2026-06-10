@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/shop_product.dart';
 
-// TODO: Consumir API de Spring Boot cuando el backend de tienda este disponible.
 /// Repositorio simulado que entrega los productos de tienda desde datos locales.
 ///
 /// Esta implementación mantiene la UI desacoplada de la fuente real de datos mientras se
@@ -11,8 +10,13 @@ class MockShopRepository {
   /// Crea un repositorio mock de tienda.
   const MockShopRepository();
 
-  // TODO: Consumir API de Spring Boot cuando el backend de tienda este disponible.
-  /// Obtiene la lista falsa de productos especiales de tienda.
+  /// Obtiene los productos de ofertas especiales.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/shop/special-offers');
+  /// return (response.data as List).map((json) => ShopProduct.fromJson(json)).toList();
+  /// ```
   Future<List<ShopProduct>> getSpecialOffers() async {
     return const [
       ShopProduct(
@@ -29,8 +33,13 @@ class MockShopRepository {
     ];
   }
 
-  // TODO: Consumir API de Spring Boot cuando el backend de tienda este disponible.
-  /// Obtiene la lista falsa de protectores de racha.
+  /// Obtiene los protectores de racha disponibles.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/shop/streak-protectors');
+  /// return (response.data as List).map((json) => ShopProduct.fromJson(json)).toList();
+  /// ```
   Future<List<ShopProduct>> getStreakProtectors() async {
     return const [
       ShopProduct(
@@ -47,8 +56,13 @@ class MockShopRepository {
     ];
   }
 
-  // TODO: Consumir API de Spring Boot cuando el backend de tienda este disponible.
-  /// Obtiene la tarjeta falsa de codigo promocional.
+  /// Obtiene la tarjeta de código promocional.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/shop/promo-codes');
+  /// return (response.data as List).map((json) => ShopProduct.fromJson(json)).toList();
+  /// ```
   Future<List<ShopProduct>> getPromoCodeOffers() async {
     return const [
       ShopProduct(

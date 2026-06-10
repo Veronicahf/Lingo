@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/mock_database.dart';
+import '../models/lesson_activity.dart';
 import '../models/lesson_node.dart';
 
 // TODO: Conectar a API Spring Boot real.
@@ -13,8 +14,15 @@ class MockCourseRepository {
   /// Crea un repositorio mock de cursos.
   const MockCourseRepository();
 
-  // TODO: Consumir API de Spring Boot cuando el backend de cursos este disponible.
-  /// Obtiene una lista falsa de nodos de leccion para simular un mapa completo.
+  // ---------- Nodos del mapa ----------
+
+  /// Obtiene una lista de nodos de leccion para el mapa.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/courses/$courseId/nodes');
+  /// return (response.data as List).map((json) => LessonNode.fromJson(json)).toList();
+  /// ```
   Future<List<LessonNode>> getLessonNodes() async {
     return [
       LessonNode(
@@ -23,7 +31,7 @@ class MockCourseRepository {
         type: LessonNodeType.star,
         status: NodeStatus.active,
         position: Offset(146, 18),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_01'),
+        activities: getActivitiesForNode('lesson_01'),
       ),
       LessonNode(
         id: 'lesson_02',
@@ -31,7 +39,7 @@ class MockCourseRepository {
         type: LessonNodeType.star,
         status: NodeStatus.locked,
         position: Offset(88, 138),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_02'),
+        activities: getActivitiesForNode('lesson_02'),
       ),
       LessonNode(
         id: 'lesson_03',
@@ -39,7 +47,7 @@ class MockCourseRepository {
         type: LessonNodeType.book,
         status: NodeStatus.locked,
         position: Offset(48, 260),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_03'),
+        activities: getActivitiesForNode('lesson_03'),
       ),
       LessonNode(
         id: 'lesson_04',
@@ -47,7 +55,7 @@ class MockCourseRepository {
         type: LessonNodeType.boss,
         status: NodeStatus.completed,
         position: Offset(282, 250),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_04'),
+        activities: getActivitiesForNode('lesson_04'),
       ),
       LessonNode(
         id: 'lesson_05',
@@ -55,7 +63,7 @@ class MockCourseRepository {
         type: LessonNodeType.book,
         status: NodeStatus.locked,
         position: Offset(100, 400),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_05'),
+        activities: getActivitiesForNode('lesson_05'),
       ),
       LessonNode(
         id: 'lesson_06',
@@ -63,7 +71,7 @@ class MockCourseRepository {
         type: LessonNodeType.dumbbell,
         status: NodeStatus.locked,
         position: Offset(146, 530),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_06'),
+        activities: getActivitiesForNode('lesson_06'),
       ),
       LessonNode(
         id: 'lesson_07',
@@ -71,7 +79,7 @@ class MockCourseRepository {
         type: LessonNodeType.book,
         status: NodeStatus.locked,
         position: Offset(256, 680),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_07'),
+        activities: getActivitiesForNode('lesson_07'),
       ),
       LessonNode(
         id: 'lesson_08',
@@ -79,7 +87,7 @@ class MockCourseRepository {
         type: LessonNodeType.boss,
         status: NodeStatus.completed,
         position: Offset(42, 830),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_08'),
+        activities: getActivitiesForNode('lesson_08'),
       ),
       LessonNode(
         id: 'lesson_09',
@@ -87,7 +95,7 @@ class MockCourseRepository {
         type: LessonNodeType.star,
         status: NodeStatus.locked,
         position: Offset(246, 970),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_09'),
+        activities: getActivitiesForNode('lesson_09'),
       ),
       LessonNode(
         id: 'lesson_10',
@@ -95,12 +103,55 @@ class MockCourseRepository {
         type: LessonNodeType.boss,
         status: NodeStatus.locked,
         position: Offset(176, 1088),
-        activities: MockDatabase.instance.getActivitiesForNode('lesson_10'),
+        activities: getActivitiesForNode('lesson_10'),
       ),
     ];
   }
 
-  /// Obtiene los cursos disponibles desde la base de datos en memoria.
+  // ---------- Actividades de lección ----------
+
+  /// Devuelve las actividades asignadas a un nodo específico del mapa.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/nodes/$nodeId/activities');
+  /// return (response.data as List).map((json) => LessonActivity.fromJson(json)).toList();
+  /// ```
+  List<LessonActivity> getActivitiesForNode(String nodeId) {
+    return MockDatabase.instance.getActivitiesForNode(nodeId);
+  }
+
+  /// Pool completo de actividades para el centro de práctica.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/activities/practice-pool');
+  /// return (response.data as List).map((json) => LessonActivity.fromJson(json)).toList();
+  /// ```
+  List<LessonActivity> getPracticePool() {
+    return MockDatabase.instance.practicePool;
+  }
+
+  /// Pool completo de actividades de lección.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/activities/lesson-pool');
+  /// return (response.data as List).map((json) => LessonActivity.fromJson(json)).toList();
+  /// ```
+  List<LessonActivity> getLessonActivities() {
+    return MockDatabase.instance.lessonActivities;
+  }
+
+  // ---------- Cursos ----------
+
+  /// Obtiene los cursos disponibles.
+  ///
+  /// TODO API:
+  /// ```dart
+  /// final response = await ApiClient.instance.get('/courses');
+  /// return (response.data as List).map((json) => Course.fromJson(json)).toList();
+  /// ```
   Future<List<Course>> getCourses() async {
     return List<Course>.unmodifiable(MockDatabase.instance.courses);
   }

@@ -1,6 +1,6 @@
 import '../core/base_viewmodel.dart';
 import '../core/service_locator.dart';
-import '../core/mock_database.dart';
+import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
 
 /// ViewModel encargada del inicio de sesion simulado con el backend en memoria.
@@ -72,7 +72,7 @@ class LoginViewModel extends BaseViewModel {
       }
 
       _authenticatedUser = user;
-      MockDatabase.instance.setActiveUser(user.id);
+      _userRepository.activateSession(user.id);
       setSuccess();
       return true;
     } catch (_) {

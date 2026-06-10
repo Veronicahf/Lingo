@@ -1,5 +1,5 @@
 import '../core/base_viewmodel.dart';
-import '../core/mock_database.dart';
+import '../core/service_locator.dart';
 import '../models/onboarding_question.dart';
 
 /// ViewModel encargada de controlar el wizard de onboarding.
@@ -9,7 +9,7 @@ import '../models/onboarding_question.dart';
 /// o al intentar acceder a Ranking/Perfil sin haber finalizado el registro.
 class OnboardingViewModel extends BaseViewModel {
   OnboardingViewModel()
-      : _questions = MockDatabase.instance.onboardingQuestions,
+      : _questions = ServiceLocator.userRepository.getOnboardingQuestions(),
         _answers = List<List<String>>.generate(_totalSteps, (_) => <String>[]);
 
   late final List<OnboardingQuestion> _questions;

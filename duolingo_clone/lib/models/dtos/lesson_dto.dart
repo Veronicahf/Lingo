@@ -38,17 +38,26 @@ class LessonDTO {
 
   /// Construye un [LessonDTO] desde un mapa JSON (futuro endpoint REST).
   factory LessonDTO.fromJson(Map<String, dynamic> json) {
+    final ActivityType resolvedType;
+    final dynamic rawType = json['type'];
+
+    if (rawType is String) {
+      resolvedType = ActivityType.values.firstWhere(
+        (t) => t.name == rawType,
+        orElse: () => ActivityType.unknown,
+      );
+    } else {
+      resolvedType = ActivityType.unknown;
+    }
+
     return LessonDTO(
-      id: json['id'] as String,
-      type: ActivityType.values.firstWhere(
-        (t) => t.name == json['type'],
-        orElse: () => ActivityType.selectTranslation,
-      ),
-      prompt: json['prompt'] as String,
-      payload: Map<String, dynamic>.from(json['payload'] as Map),
-      correctAnswer: json['correctAnswer'] as String,
+      id: (json['id'] as String?) ?? '',
+      type: resolvedType,
+      prompt: (json['prompt'] as String?) ?? '',
+      payload: (json['payload'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      correctAnswer: (json['correctAnswer'] as String?) ?? '',
       aiExplanation: json['aiExplanation'] as String?,
-      mascotEmotion: json['mascotEmotion'] as String? ?? 'idle',
+      mascotEmotion: (json['mascotEmotion'] as String?) ?? 'idle',
     );
   }
 
